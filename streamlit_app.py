@@ -7,7 +7,7 @@ import streamlit as st
 # ----------------------------
 # 1. Charger les données CSV
 # ----------------------------
-df = pd.read_csv("entreprises.csv")  # Remplacer par ton CSV
+df = pd.read_excel('OPTIQUESS.xlsx', engine='openpyxl')
 
 # ----------------------------
 # 2. Nettoyage des colonnes numériques
