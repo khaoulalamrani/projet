@@ -5,93 +5,87 @@ from plotly.subplots import make_subplots
 import streamlit as st
 import numpy as np
 from datetime import datetime
-import plotly.io as pio
-import base64
-from io import BytesIO
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 # ----------------------------
 # CONFIGURATION DE LA PAGE
 # ----------------------------
 st.set_page_config(
-    page_title="Dashboard Optiques - 293 Entreprises",
+    page_title="Dashboard Optiques",
     page_icon="👓",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # ----------------------------
-# CSS PERSONNALISÉ AVANCÉ
+# CSS PERSONNALISÉ
 # ----------------------------
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
-    
+    /* Thème principal */
     .main-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 2rem;
-        border-radius: 15px;
+        background: linear-gradient(90deg, #1f77b4, #ff7f0e);
+        padding: 1rem;
+        border-radius: 10px;
         margin-bottom: 2rem;
         text-align: center;
         color: white;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        font-family: 'Roboto', sans-serif;
-    }
-    
-    .chart-container {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 15px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        margin-bottom: 2rem;
-        border: 1px solid #e0e0e0;
     }
     
     .metric-card {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 1.5rem;
-        border-radius: 15px;
-        text-align: center;
-        color: white;
-        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-        margin-bottom: 1rem;
-        transition: transform 0.3s ease;
-    }
-    
-    .metric-card:hover {
-        transform: translateY(-5px);
-    }
-    
-    .chart-title {
-        background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
-        color: white;
         padding: 1rem;
         border-radius: 10px;
         text-align: center;
+        color: white;
+        box-shadow: 0 4px 15px 0 rgba(31, 38, 135, 0.37);
         margin-bottom: 1rem;
+    }
+    
+    .metric-value {
+        font-size: 2rem;
         font-weight: bold;
+        margin-bottom: 0.5rem;
     }
     
-    .download-section {
-        background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
-        padding: 1rem;
-        border-radius: 10px;
+    .metric-label {
+        font-size: 0.9rem;
+        opacity: 0.8;
+    }
+    
+    .section-header {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        color: white;
         margin: 1rem 0;
     }
     
-    .stats-highlight {
-        background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
-        color: white;
+    .sidebar .sidebar-content {
+        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .filter-container {
+        background: rgba(255, 255, 255, 0.1);
         padding: 1rem;
         border-radius: 10px;
-        margin: 0.5rem 0;
+        backdrop-filter: blur(10px);
+        margin-bottom: 1rem;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # ----------------------------
-# FONCTIONS UTILITAIRES
+# TITRE PRINCIPAL
+# ----------------------------
+st.markdown("""
+<div class="main-header">
+    <h1>👓 Dashboard Secteur Optique - Analyse Complète</h1>
+    <p>Tableau de bord interactif pour l'analyse du marché optique</p>
+</div>
+""", unsafe_allow_html=True)
+
+# ----------------------------
+# CHARGEMENT DES DONNÉES
 # ----------------------------
 @st.cache_data
 def load_data():
@@ -110,80 +104,72 @@ def load_data():
         st.error(f"Erreur de chargement: {e}")
         return None
 
-def save_plotly_as_image(fig, filename):
-    """Sauvegarde un graphique Plotly en image"""
-    img_bytes = fig.to_image(format="png", width=1200, height=800, scale=2)
-    return img_bytes
-
-def create_download_link(fig, filename, title):
-    """Crée un lien de téléchargement pour un graphique"""
-    img_bytes = save_plotly_as_image(fig, filename)
-    b64 = base64.b64encode(img_bytes).decode()
-    href = f'<a href="data:image/png;base64,{b64}" download="{filename}.png" class="download-btn">📸 Télécharger {title}</a>'
-    return href
-
-# ----------------------------
-# CHARGEMENT DES DONNÉES
-# ----------------------------
 df = load_data()
 
 if df is not None:
-    total_optiques = len(df)
-    
-    # TITRE AVEC STATS
-    st.markdown(f"""
-    <div class="main-header">
-        <h1>👓 DASHBOARD SECTEUR OPTIQUE MAROC</h1>
-        <h2>🎯 Analyse Complète de {total_optiques} Entreprises Optiques</h2>
-        <p>📊 Visualisations Avancées • 📸 Captures HD • 🔍 Analytics Détaillés</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
     # ----------------------------
-    # SIDEBAR AVANCÉ
+    # SIDEBAR AVEC FILTRES
     # ----------------------------
-    st.sidebar.markdown("## 🎛️ Contrôles Avancés")
+    st.sidebar.markdown("## 🔍 Filtres et Options")
     
-    # Filtres
+    # Filtre par ville
     cities = ['Toutes'] + sorted(df['Ville'].dropna().unique().tolist())
-    selected_city = st.sidebar.selectbox("🏙️ Ville", cities)
+    selected_city = st.sidebar.selectbox("🏙️ Filtrer par ville", cities)
     
+    # Filtre par note
     if 'Note_Google' in df.columns:
-        note_range = st.sidebar.slider("⭐ Notes Google", 0.0, 5.0, (0.0, 5.0), 0.1)
+        note_range = st.sidebar.slider(
+            "⭐ Plage de notes Google",
+            float(df['Note_Google'].min()),
+            float(df['Note_Google'].max()),
+            (float(df['Note_Google'].min()), float(df['Note_Google'].max())),
+            step=0.1
+        )
     
-    # Styles de graphiques
-    st.sidebar.markdown("### 🎨 Personnalisation")
-    color_themes = {
-        "Viridis": "Viridis", "Plasma": "Plasma", "Inferno": "Inferno", 
-        "Cividis": "Cividis", "Turbo": "Turbo", "Rainbow": "Rainbow"
-    }
-    selected_theme = st.sidebar.selectbox("🌈 Thème couleurs", list(color_themes.keys()))
-    
-    chart_height = st.sidebar.slider("📏 Hauteur graphiques", 400, 800, 600)
+    # Filtre par distance
+    if 'Distance-TARMIZ(KM)' in df.columns:
+        max_distance = st.sidebar.slider(
+            "📍 Distance max de TARMIZ (km)",
+            0.0,
+            float(df['Distance-TARMIZ(KM)'].max()),
+            float(df['Distance-TARMIZ(KM)'].max())
+        )
     
     # Application des filtres
     df_filtered = df.copy()
+    
     if selected_city != 'Toutes':
         df_filtered = df_filtered[df_filtered['Ville'] == selected_city]
+    
     if 'Note_Google' in df.columns:
         df_filtered = df_filtered[
             (df_filtered['Note_Google'] >= note_range[0]) & 
             (df_filtered['Note_Google'] <= note_range[1])
         ]
     
+    if 'Distance-TARMIZ(KM)' in df.columns:
+        df_filtered = df_filtered[df_filtered['Distance-TARMIZ(KM)'] <= max_distance]
+    
+    # Options d'affichage
+    st.sidebar.markdown("## 🎨 Options d'affichage")
+    color_theme = st.sidebar.selectbox(
+        "Thème de couleurs",
+        ["Viridis", "Plasma", "Inferno", "Magma", "Cividis"]
+    )
+    
     # ----------------------------
-    # MÉTRIQUES DYNAMIQUES
+    # MÉTRIQUES PRINCIPALES
     # ----------------------------
-    st.markdown("## 🎯 Métriques Clés Temps Réel")
+    st.markdown("## 📊 Métriques Clés")
     
     col1, col2, col3, col4, col5 = st.columns(5)
     
     with col1:
+        total_optiques = len(df_filtered)
         st.markdown(f"""
         <div class="metric-card">
-            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">👓</div>
-            <div style="font-size: 2rem; font-weight: bold;">{len(df_filtered)}</div>
-            <div>Optiques Analysées</div>
+            <div class="metric-value">{total_optiques}</div>
+            <div class="metric-label">📊 Total Optiques</div>
         </div>
         """, unsafe_allow_html=True)
     
@@ -192,748 +178,493 @@ if df is not None:
             avg_note = df_filtered['Note_Google'].mean()
             st.markdown(f"""
             <div class="metric-card">
-                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">⭐</div>
-                <div style="font-size: 2rem; font-weight: bold;">{avg_note:.2f}</div>
-                <div>Note Moyenne Google</div>
+                <div class="metric-value">{avg_note:.2f}</div>
+                <div class="metric-label">⭐ Note Moyenne</div>
             </div>
             """, unsafe_allow_html=True)
     
     with col3:
-        cities_count = df_filtered['Ville'].nunique()
-        st.markdown(f"""
-        <div class="metric-card">
-            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏙️</div>
-            <div style="font-size: 2rem; font-weight: bold;">{cities_count}</div>
-            <div>Villes Couvertes</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col4:
         if 'Site web' in df.columns:
             web_presence = (df_filtered['Site web'].notna().sum() / len(df_filtered)) * 100
             st.markdown(f"""
             <div class="metric-card">
-                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🌐</div>
-                <div style="font-size: 2rem; font-weight: bold;">{web_presence:.0f}%</div>
-                <div>Présence Web</div>
-            </div>
-            """, unsafe_allow_html=True)
-    
-    with col5:
-        if 'Distance-TARMIZ(KM)' in df.columns:
-            avg_distance = df_filtered['Distance-TARMIZ(KM)'].mean()
-            st.markdown(f"""
-            <div class="metric-card">
-                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📍</div>
-                <div style="font-size: 2rem; font-weight: bold;">{avg_distance:.1f}</div>
-                <div>Distance Moy. TARMIZ (km)</div>
-            </div>
-            """, unsafe_allow_html=True)
-    
-    # ----------------------------
-    # 🌟 NOUVELLES VISUALISATIONS AVANCÉES
-    # ----------------------------
-    
-    st.markdown("---")
-    st.markdown("## 🎨 VISUALISATIONS AVANCÉES")
-    
-    # =================== GRAPHIQUE 1: SUNBURST ===================
-    st.markdown('<div class="chart-title">☀️ DIAGRAMME SUNBURST - HIÉRARCHIE VILLE/PERFORMANCE</div>', unsafe_allow_html=True)
-    
-    if 'Ville' in df.columns and 'Note_Google' in df.columns:
-        # Créer des catégories de performance
-        df_sunburst = df_filtered.copy()
-        df_sunburst['Performance'] = pd.cut(df_sunburst['Note_Google'], 
-                                          bins=[0, 3.5, 4.0, 4.5, 5.0], 
-                                          labels=['Faible', 'Moyenne', 'Bonne', 'Excellente'])
-        
-        fig_sunburst = px.sunburst(
-            df_sunburst.dropna(subset=['Performance']),
-            path=['Ville', 'Performance'],
-            title="🌟 Répartition Ville → Performance",
-            color='Note_Google',
-            color_continuous_scale=color_themes[selected_theme],
-            height=chart_height
-        )
-        
-        fig_sunburst.update_layout(
-            title_font_size=20,
-            title_x=0.5,
-            font_size=14
-        )
-        
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.plotly_chart(fig_sunburst, use_container_width=True)
-        with col2:
-            st.markdown(f'<div class="download-section">{create_download_link(fig_sunburst, "sunburst_performance", "Sunburst")}</div>', unsafe_allow_html=True)
-    
-    # =================== GRAPHIQUE 2: TREEMAP ===================
-    st.markdown('<div class="chart-title">🗺️ TREEMAP - DOMINANCE PAR VILLE</div>', unsafe_allow_html=True)
-    
-    if 'Ville' in df.columns:
-        city_stats = df_filtered.groupby('Ville').agg({
-            'Note_Google': 'mean',
-            'Nb_Avis_Google': 'sum',
-            'Nom': 'count'
-        }).reset_index()
-        city_stats.columns = ['Ville', 'Note_Moyenne', 'Total_Avis', 'Nombre_Optiques']
-        
-        fig_treemap = px.treemap(
-            city_stats,
-            path=['Ville'],
-            values='Nombre_Optiques',
-            color='Note_Moyenne',
-            color_continuous_scale=color_themes[selected_theme],
-            title="🏆 Dominance des Villes (Taille = Nombre d'optiques, Couleur = Note moyenne)",
-            height=chart_height
-        )
-        
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.plotly_chart(fig_treemap, use_container_width=True)
-        with col2:
-            st.markdown(f'<div class="download-section">{create_download_link(fig_treemap, "treemap_villes", "Treemap")}</div>', unsafe_allow_html=True)
-    
-    # =================== GRAPHIQUE 3: RADAR CHART ===================
-    st.markdown('<div class="chart-title">🎯 RADAR - PERFORMANCE MULTI-DIMENSIONNELLE</div>', unsafe_allow_html=True)
-    
-    if all(col in df.columns for col in ['Note_Google', 'Nb_Avis_Google', 'Score_Presence_Digitale']):
-        # Sélectionner les top 5 villes
-        top_cities = df_filtered['Ville'].value_counts().head(5).index
-        
-        radar_data = []
-        categories = ['Note Google', 'Nb Avis (norm.)', 'Score Digital', 'Ancienneté (norm.)']
-        
-        for city in top_cities:
-            city_data = df_filtered[df_filtered['Ville'] == city]
-            
-            # Normaliser les données sur une échelle 0-5
-            note_avg = city_data['Note_Google'].mean()
-            avis_norm = min(city_data['Nb_Avis_Google'].mean() / 20, 5)  # Normaliser sur 5
-            digital_norm = city_data['Score_Presence_Digitale'].mean() / 20  # Normaliser sur 5
-            anciennete_norm = min(city_data.get('Anciennete_Estimee', pd.Series([2.5])).mean(), 5)
-            
-            radar_data.append({
-                'Ville': city,
-                'Note Google': note_avg,
-                'Nb Avis (norm.)': avis_norm,
-                'Score Digital': digital_norm,
-                'Ancienneté (norm.)': anciennete_norm
-            })
-        
-        fig_radar = go.Figure()
-        
-        colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7']
-        
-        for i, data in enumerate(radar_data):
-            fig_radar.add_trace(go.Scatterpolar(
-                r=[data[cat] for cat in categories],
-                theta=categories,
-                fill='toself',
-                name=data['Ville'],
-                line_color=colors[i % len(colors)],
-                fillcolor=colors[i % len(colors)],
-                opacity=0.6
-            ))
-        
-        fig_radar.update_layout(
-            polar=dict(
-                radialaxis=dict(visible=True, range=[0, 5])
-            ),
-            title="🎯 Profil Multi-Dimensionnel des Top 5 Villes",
-            height=chart_height,
-            title_font_size=20,
-            title_x=0.5
-        )
-        
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.plotly_chart(fig_radar, use_container_width=True)
-        with col2:
-            st.markdown(f'<div class="download-section">{create_download_link(fig_radar, "radar_villes", "Radar Chart")}</div>', unsafe_allow_html=True)
-    
-    # =================== GRAPHIQUE 4: HEATMAP AVANCÉE ===================
-    st.markdown('<div class="chart-title">🔥 HEATMAP - CORRÉLATIONS AVANCÉES</div>', unsafe_allow_html=True)
-    
-    numeric_cols = df_filtered.select_dtypes(include=[np.number]).columns
-    if len(numeric_cols) > 2:
-        correlation_matrix = df_filtered[numeric_cols].corr()
-        
-        # Masquer la diagonale
-        mask = np.triu(np.ones_like(correlation_matrix))
-        correlation_masked = correlation_matrix.mask(mask)
-        
-        fig_heatmap = px.imshow(
-            correlation_masked,
-            color_continuous_scale=color_themes[selected_theme],
-            aspect="auto",
-            title="🔍 Matrice de Corrélations (Partie Inférieure)",
-            height=chart_height
-        )
-        
-        fig_heatmap.update_layout(
-            title_font_size=20,
-            title_x=0.5
-        )
-        
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.plotly_chart(fig_heatmap, use_container_width=True)
-        with col2:
-            st.markdown(f'<div class="download-section">{create_download_link(fig_heatmap, "heatmap_correlations", "Heatmap")}</div>', unsafe_allow_html=True)
-    
-    # =================== GRAPHIQUE 5: VIOLIN PLOT ===================
-    st.markdown('<div class="chart-title">🎻 VIOLIN PLOT - DISTRIBUTION DES PERFORMANCES</div>', unsafe_allow_html=True)
-    
-    if 'Note_Google' in df.columns and 'Ville' in df.columns:
-        # Prendre les top 8 villes pour la lisibilité
-        top_cities_violin = df_filtered['Ville'].value_counts().head(8).index
-        df_violin = df_filtered[df_filtered['Ville'].isin(top_cities_violin)]
-        
-        fig_violin = px.violin(
-            df_violin,
-            x='Ville',
-            y='Note_Google',
-            color='Ville',
-            box=True,
-            points="all",
-            title="🎵 Distribution des Notes par Ville (avec points individuels)",
-            height=chart_height,
-            color_discrete_sequence=px.colors.qualitative.Set3
-        )
-        
-        fig_violin.update_layout(
-            showlegend=False,
-            title_font_size=20,
-            title_x=0.5,
-            xaxis_tickangle=45
-        )
-        
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.plotly_chart(fig_violin, use_container_width=True)
-        with col2:
-            st.markdown(f'<div class="download-section">{create_download_link(fig_violin, "violin_performances", "Violin Plot")}</div>', unsafe_allow_html=True)
-    
-    # =================== GRAPHIQUE 6: SANKEY DIAGRAM ===================
-    st.markdown('<div class="chart-title">🌊 SANKEY - FLUX TAILLE → PERFORMANCE</div>', unsafe_allow_html=True)
-    
-    if 'Taille_Entreprise' in df.columns and 'Note_Google' in df.columns:
-        # Créer des catégories
-        df_sankey = df_filtered.copy()
-        df_sankey['Performance_Cat'] = pd.cut(df_sankey['Note_Google'], 
-                                            bins=[0, 3.5, 4.0, 4.5, 5.0], 
-                                            labels=['Faible', 'Moyenne', 'Bonne', 'Excellente'])
-        
-        # Compter les flux
-        sankey_data = df_sankey.groupby(['Taille_Entreprise', 'Performance_Cat']).size().reset_index(name='count')
-        sankey_data = sankey_data.dropna()
-        
-        # Créer les labels uniques
-        sources = sankey_data['Taille_Entreprise'].unique()
-        targets = [f"{cat}_perf" for cat in sankey_data['Performance_Cat'].unique()]
-        all_labels = list(sources) + targets
-        
-        # Créer les indices
-        source_indices = [all_labels.index(src) for src in sankey_data['Taille_Entreprise']]
-        target_indices = [all_labels.index(f"{tgt}_perf") for tgt in sankey_data['Performance_Cat']]
-        
-        fig_sankey = go.Figure(data=[go.Sankey(
-            node=dict(
-                pad=15,
-                thickness=20,
-                line=dict(color="black", width=0.5),
-                label=all_labels,
-                color="blue"
-            ),
-            link=dict(
-                source=source_indices,
-                target=target_indices,
-                value=sankey_data['count'].tolist()
-            )
-        )])
-        
-        fig_sankey.update_layout(
-            title_text="🌊 Flux Taille Entreprise → Performance",
-            height=chart_height,
-            title_font_size=20,
-            title_x=0.5
-        )
-        
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.plotly_chart(fig_sankey, use_container_width=True)
-        with col2:
-            st.markdown(f'<div class="download-section">{create_download_link(fig_sankey, "sankey_flux", "Sankey")}</div>', unsafe_allow_html=True)
-    
-    # =================== GRAPHIQUE 7: 3D SCATTER ===================
-    st.markdown('<div class="chart-title">🌌 3D SCATTER - EXPLORATION MULTIVARIÉE</div>', unsafe_allow_html=True)
-    
-    if all(col in df.columns for col in ['Note_Google', 'Nb_Avis_Google', 'Score_Presence_Digitale']):
-        fig_3d = px.scatter_3d(
-            df_filtered,
-            x='Note_Google',
-            y='Nb_Avis_Google',
-            z='Score_Presence_Digitale',
-            color='Ville',
-            size='Distance-TARMIZ(KM)' if 'Distance-TARMIZ(KM)' in df.columns else None,
-            hover_data=['Nom'],
-            title="🌌 Analyse 3D: Notes × Avis × Score Digital",
-            height=chart_height,
-            opacity=0.7
-        )
-        
-        fig_3d.update_layout(
-            title_font_size=20,
-            title_x=0.5,
-            scene=dict(
-                xaxis_title="Note Google",
-                yaxis_title="Nombre d'Avis",
-                zaxis_title="Score Digital"
-            )
-        )
-        
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.plotly_chart(fig_3d, use_container_width=True)
-        with col2:
-            st.markdown(f'<div class="download-section">{create_download_link(fig_3d, "3d_scatter", "3D Scatter")}</div>', unsafe_allow_html=True)
-    
-    # =================== GRAPHIQUE 8: GAUGE CHARTS ===================
-    st.markdown('<div class="chart-title">🎚️ JAUGES - INDICATEURS CLÉS</div>', unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns(3)
-    
-    # Jauge 1: Note moyenne
-    if 'Note_Google' in df.columns:
-        avg_note = df_filtered['Note_Google'].mean()
-        fig_gauge1 = go.Figure(go.Indicator(
-            mode="gauge+number+delta",
-            value=avg_note,
-            domain={'x': [0, 1], 'y': [0, 1]},
-            title={'text': "Note Moyenne Google"},
-            delta={'reference': 4.0},
-            gauge={
-                'axis': {'range': [None, 5]},
-                'bar': {'color': "darkblue"},
-                'steps': [
-                    {'range': [0, 2.5], 'color': "lightgray"},
-                    {'range': [2.5, 4], 'color': "yellow"},
-                    {'range': [4, 5], 'color': "green"}
-                ],
-                'threshold': {
-                    'line': {'color': "red", 'width': 4},
-                    'thickness': 0.75,
-                    'value': 4.5
-                }
-            }
-        ))
-        fig_gauge1.update_layout(height=300)
-        
-        with col1:
-            st.plotly_chart(fig_gauge1, use_container_width=True)
-            st.markdown(f'<div class="download-section">{create_download_link(fig_gauge1, "gauge_note", "Jauge Note")}</div>', unsafe_allow_html=True)
-    
-    # Jauge 2: Présence digitale
-    if 'Score_Presence_Digitale' in df.columns:
-        avg_digital = df_filtered['Score_Presence_Digitale'].mean()
-        fig_gauge2 = go.Figure(go.Indicator(
-            mode="gauge+number+delta",
-            value=avg_digital,
-            domain={'x': [0, 1], 'y': [0, 1]},
-            title={'text': "Score Digital Moyen"},
-            delta={'reference': 50},
-            gauge={
-                'axis': {'range': [None, 100]},
-                'bar': {'color': "purple"},
-                'steps': [
-                    {'range': [0, 30], 'color': "lightgray"},
-                    {'range': [30, 70], 'color': "orange"},
-                    {'range': [70, 100], 'color': "green"}
-                ],
-                'threshold': {
-                    'line': {'color': "red", 'width': 4},
-                    'thickness': 0.75,
-                    'value': 80
-                }
-            }
-        ))
-        fig_gauge2.update_layout(height=300)
-        
-        with col2:
-            st.plotly_chart(fig_gauge2, use_container_width=True)
-            st.markdown(f'<div class="download-section">{create_download_link(fig_gauge2, "gauge_digital", "Jauge Digital")}</div>', unsafe_allow_html=True)
-    
-    # Jauge 3: Couverture géographique
-    coverage = (df_filtered['Ville'].nunique() / df['Ville'].nunique()) * 100
-    fig_gauge3 = go.Figure(go.Indicator(
-        mode="gauge+number",
-        value=coverage,
-        domain={'x': [0, 1], 'y': [0, 1]},
-        title={'text': "Couverture Villes (%)"},
-        gauge={
-            'axis': {'range': [None, 100]},
-            'bar': {'color': "teal"},
-            'steps': [
-                {'range': [0, 50], 'color': "lightgray"},
-                {'range': [50, 80], 'color': "yellow"},
-                {'range': [80, 100], 'color': "green"}
-            ]
-        }
-    ))
-    fig_gauge3.update_layout(height=300)
-    
-    with col3:
-        st.plotly_chart(fig_gauge3, use_container_width=True)
-        st.markdown(f'<div class="download-section">{create_download_link(fig_gauge3, "gauge_couverture", "Jauge Couverture")}</div>', unsafe_allow_html=True)
-    
-    # =================== SECTION TÉLÉCHARGEMENT GLOBAL ===================
-    st.markdown("---")
-    st.markdown('<div class="chart-title">📥 TÉLÉCHARGEMENT GLOBAL</div>', unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        # Export des données
-        csv = df_filtered.to_csv(index=False)
-        st.download_button(
-            label="📊 Données CSV",
-            data=csv,
-            file_name=f"optiques_maroc_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
-            mime="text/csv"
-        )
-    
-    with col2:
-        # Rapport PDF (simulé)
-        st.markdown("""
-        <div class="download-section">
-            <h4>📄 Rapport Complet</h4>
-            <p>Génération automatique du rapport PDF avec tous les graphiques</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col3:
-        # Instructions captures
-        st.markdown("""
-        <div class="download-section">
-            <h4>📸 Guide Captures</h4>
-            <p>• Clic droit sur graphique → "Sauvegarder l'image"<br>
-            • Boutons 📸 individuels<br>
-            • Résolution HD automatique</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # =================== STATISTIQUES FINALES ===================
-    st.markdown("---")
-    st.markdown("## 📈 Statistiques Détaillées")
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.markdown(f"""
-        <div class="stats-highlight">
-            <h4>🏆 Excellence</h4>
-            <p>Notes ≥ 4.5: <strong>{len(df_filtered[df_filtered['Note_Google'] >= 4.5])}</strong></p>
-            <p>Top Performers: <strong>{(len(df_filtered[df_filtered['Note_Google'] >= 4.5])/len(df_filtered)*100):.1f}%</strong></p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        if 'Site web' in df.columns:
-            web_count = df_filtered['Site web'].notna().sum()
-            email_count = df_filtered['Email'].notna().sum() if 'Email' in df.columns else 0
-            social_count = df_filtered['Réseaux sociaux'].notna().sum() if 'Réseaux sociaux' in df.columns else 0
-            st.markdown(f"""
-            <div class="stats-highlight">
-                <h4>📱 Digital</h4>
-                <p>Site Web: <strong>{web_count} ({web_count/len(df_filtered)*100:.1f}%)</strong></p>
-                <p>Email: <strong>{email_count} ({email_count/len(df_filtered)*100:.1f}%)</strong></p>
-                <p>Réseaux: <strong>{social_count} ({social_count/len(df_filtered)*100:.1f}%)</strong></p>
-            </div>
-            """, unsafe_allow_html=True)
-    
-    with col3:
-        if 'Distance-TARMIZ(KM)' in df.columns:
-            proche_tarmiz = len(df_filtered[df_filtered['Distance-TARMIZ(KM)'] <= 10])
-            distance_moy = df_filtered['Distance-TARMIZ(KM)'].mean()
-            st.markdown(f"""
-            <div class="stats-highlight">
-                <h4>📍 Géographie</h4>
-                <p>Proche TARMIZ (≤10km): <strong>{proche_tarmiz}</strong></p>
-                <p>Distance moyenne: <strong>{distance_moy:.1f} km</strong></p>
-                <p>Étendue: <strong>{df_filtered['Distance-TARMIZ(KM)'].max():.1f} km</strong></p>
+                <div class="metric-value">{web_presence:.1f}%</div>
+                <div class="metric-label">🌐 Présence Web</div>
             </div>
             """, unsafe_allow_html=True)
     
     with col4:
-        top_ville = df_filtered['Ville'].value_counts().index[0] if len(df_filtered) > 0 else "N/A"
-        top_count = df_filtered['Ville'].value_counts().iloc[0] if len(df_filtered) > 0 else 0
-        st.markdown(f"""
-        <div class="stats-highlight">
-            <h4>🏙️ Marché</h4>
-            <p>Ville leader: <strong>{top_ville}</strong></p>
-            <p>Concentration: <strong>{top_count} optiques</strong></p>
-            <p>Part de marché: <strong>{(top_count/len(df_filtered)*100):.1f}%</strong></p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # =================== GRAPHIQUES BONUS POUR LES 293 OPTIQUES ===================
-    st.markdown("---")
-    st.markdown("## 🎨 VISUALISATIONS SPÉCIALES - 293 OPTIQUES")
-    
-    # =================== GRAPHIQUE 9: WATERFALL CHART ===================
-    st.markdown('<div class="chart-title">🌊 WATERFALL - PROGRESSION PAR CRITÈRES</div>', unsafe_allow_html=True)
-    
-    if 'Note_Google' in df.columns:
-        # Créer des segments de performance
-        segments = {
-            'Excellent (4.5+)': len(df_filtered[df_filtered['Note_Google'] >= 4.5]),
-            'Très Bon (4.0-4.5)': len(df_filtered[(df_filtered['Note_Google'] >= 4.0) & (df_filtered['Note_Google'] < 4.5)]),
-            'Bon (3.5-4.0)': len(df_filtered[(df_filtered['Note_Google'] >= 3.5) & (df_filtered['Note_Google'] < 4.0)]),
-            'Moyen (<3.5)': len(df_filtered[df_filtered['Note_Google'] < 3.5])
-        }
-        
-        fig_waterfall = go.Figure(go.Waterfall(
-            name="Répartition Performance",
-            orientation="v",
-            measure=["absolute", "absolute", "absolute", "absolute"],
-            x=list(segments.keys()),
-            textposition="outside",
-            text=[str(v) for v in segments.values()],
-            y=list(segments.values()),
-            connector={"line": {"color": "rgb(63, 63, 63)"}},
-            increasing={"marker": {"color": "green"}},
-            decreasing={"marker": {"color": "red"}},
-            totals={"marker": {"color": "blue"}}
-        ))
-        
-        fig_waterfall.update_layout(
-            title="🌊 Distribution des 293 Optiques par Niveau de Performance",
-            height=chart_height,
-            title_font_size=20,
-            title_x=0.5
-        )
-        
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.plotly_chart(fig_waterfall, use_container_width=True)
-        with col2:
-            st.markdown(f'<div class="download-section">{create_download_link(fig_waterfall, "waterfall_performance", "Waterfall")}</div>', unsafe_allow_html=True)
-    
-    # =================== GRAPHIQUE 10: BUBBLE CHART ANIMÉ ===================
-    st.markdown('<div class="chart-title">🫧 BUBBLE CHART - TAILLE vs PERFORMANCE vs DIGITAL</div>', unsafe_allow_html=True)
-    
-    if all(col in df.columns for col in ['Note_Google', 'Nb_Avis_Google', 'Score_Presence_Digitale']):
-        # Grouper par ville pour créer des bulles plus visibles
-        bubble_data = df_filtered.groupby('Ville').agg({
-            'Note_Google': 'mean',
-            'Nb_Avis_Google': 'sum',
-            'Score_Presence_Digitale': 'mean',
-            'Nom': 'count'
-        }).reset_index()
-        bubble_data.columns = ['Ville', 'Note_Moyenne', 'Total_Avis', 'Score_Digital_Moyen', 'Nombre_Optiques']
-        
-        fig_bubble = px.scatter(
-            bubble_data,
-            x='Note_Moyenne',
-            y='Score_Digital_Moyen',
-            size='Nombre_Optiques',
-            color='Total_Avis',
-            hover_name='Ville',
-            hover_data=['Nombre_Optiques', 'Total_Avis'],
-            color_continuous_scale=color_themes[selected_theme],
-            title="🫧 Analyse Bulles: Performance × Digital × Volume (Taille = Nb Optiques)",
-            size_max=60,
-            height=chart_height
-        )
-        
-        fig_bubble.update_layout(
-            title_font_size=20,
-            title_x=0.5,
-            xaxis_title="Note Google Moyenne",
-            yaxis_title="Score Digital Moyen"
-        )
-        
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.plotly_chart(fig_bubble, use_container_width=True)
-        with col2:
-            st.markdown(f'<div class="download-section">{create_download_link(fig_bubble, "bubble_analysis", "Bubble Chart")}</div>', unsafe_allow_html=True)
-    
-    # =================== GRAPHIQUE 11: PARALLEL COORDINATES ===================
-    st.markdown('<div class="chart-title">📊 COORDONNÉES PARALLÈLES - PROFIL COMPLET</div>', unsafe_allow_html=True)
-    
-    numeric_cols_parallel = ['Note_Google', 'Nb_Avis_Google', 'Score_Presence_Digitale', 'Distance-TARMIZ(KM)']
-    available_cols = [col for col in numeric_cols_parallel if col in df.columns]
-    
-    if len(available_cols) >= 3:
-        # Prendre un échantillon pour la lisibilité
-        df_sample = df_filtered.sample(min(50, len(df_filtered))) if len(df_filtered) > 50 else df_filtered
-        
-        fig_parallel = px.parallel_coordinates(
-            df_sample,
-            dimensions=available_cols,
-            color='Note_Google' if 'Note_Google' in df.columns else available_cols[0],
-            color_continuous_scale=color_themes[selected_theme],
-            title="📊 Profils Parallèles des Optiques (Échantillon)",
-            height=chart_height
-        )
-        
-        fig_parallel.update_layout(
-            title_font_size=20,
-            title_x=0.5
-        )
-        
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.plotly_chart(fig_parallel, use_container_width=True)
-        with col2:
-            st.markdown(f'<div class="download-section">{create_download_link(fig_parallel, "parallel_coordinates", "Parallel Coord")}</div>', unsafe_allow_html=True)
-    
-    # =================== GRAPHIQUE 12: GANTT CHART (Simulation Timeline) ===================
-    st.markdown('<div class="chart-title">📅 TIMELINE - ÉVOLUTION HYPOTHÉTIQUE</div>', unsafe_allow_html=True)
-    
-    if 'Anciennete_Estimee' in df.columns:
-        # Créer une timeline simulée basée sur l'ancienneté
-        timeline_data = []
-        current_year = 2024
-        
-        for _, row in df_filtered.head(10).iterrows():  # Top 10 pour la visibilité
-            anciennete = row.get('Anciennete_Estimee', 5)
-            start_year = current_year - int(anciennete)
-            
-            timeline_data.append({
-                'Optique': row['Nom'][:20] + '...' if len(row['Nom']) > 20 else row['Nom'],
-                'Start': f"{start_year}-01-01",
-                'Finish': f"{current_year}-12-31",
-                'Note': row.get('Note_Google', 3.5)
-            })
-        
-        timeline_df = pd.DataFrame(timeline_data)
-        timeline_df['Start'] = pd.to_datetime(timeline_df['Start'])
-        timeline_df['Finish'] = pd.to_datetime(timeline_df['Finish'])
-        
-        fig_gantt = px.timeline(
-            timeline_df,
-            x_start='Start',
-            x_end='Finish',
-            y='Optique',
-            color='Note',
-            color_continuous_scale=color_themes[selected_theme],
-            title="📅 Timeline Évolution des Top 10 Optiques (Basé sur Ancienneté Estimée)",
-            height=chart_height
-        )
-        
-        fig_gantt.update_layout(
-            title_font_size=20,
-            title_x=0.5,
-            xaxis_title="Période d'Activité"
-        )
-        
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.plotly_chart(fig_gantt, use_container_width=True)
-        with col2:
-            st.markdown(f'<div class="download-section">{create_download_link(fig_gantt, "timeline_optiques", "Timeline")}</div>', unsafe_allow_html=True)
-    
-    # =================== SECTION INSIGHTS AVANCÉS ===================
-    st.markdown("---")
-    st.markdown("## 🧠 INSIGHTS INTELLIGENCE ARTIFICIELLE")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("""
-        <div class="stats-highlight">
-            <h4>🤖 Analyse Prédictive</h4>
-            <ul>
-                <li><strong>Potentiel d'amélioration:</strong> 78% des optiques peuvent améliorer leur score digital</li>
-                <li><strong>Opportunité géographique:</strong> 12 villes sous-représentées identifiées</li>
-                <li><strong>Benchmark performance:</strong> Top 10% ont une note moyenne de 4.6+</li>
-                <li><strong>Corrélation forte:</strong> Présence digitale = +0.3 points de note</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        if 'Note_Google' in df.columns and 'Score_Presence_Digitale' in df.columns:
-            correlation = df_filtered[['Note_Google', 'Score_Presence_Digitale']].corr().iloc[0,1]
-            high_performers = len(df_filtered[df_filtered['Note_Google'] >= 4.5])
-            digital_leaders = len(df_filtered[df_filtered['Score_Presence_Digitale'] >= 80])
-            
+        if 'Distance-TARMIZ(KM)' in df.columns:
+            avg_distance = df_filtered['Distance-TARMIZ(KM)'].mean()
             st.markdown(f"""
-            <div class="stats-highlight">
-                <h4>📊 Métriques Clés</h4>
-                <ul>
-                    <li><strong>Corrélation Note-Digital:</strong> {correlation:.3f}</li>
-                    <li><strong>High Performers (4.5+):</strong> {high_performers} ({high_performers/len(df_filtered)*100:.1f}%)</li>
-                    <li><strong>Leaders Digitaux (80+):</strong> {digital_leaders} ({digital_leaders/len(df_filtered)*100:.1f}%)</li>
-                    <li><strong>Potentiel marché:</strong> {293 - len(df_filtered)} optiques filtrées</li>
-                </ul>
+            <div class="metric-card">
+                <div class="metric-value">{avg_distance:.1f}</div>
+                <div class="metric-label">📍 Distance Moy. TARMIZ</div>
             </div>
             """, unsafe_allow_html=True)
     
-    # =================== FOOTER AVEC INSTRUCTIONS ===================
+    with col5:
+        if 'Score_Presence_Digitale' in df.columns:
+            avg_digital = df_filtered['Score_Presence_Digitale'].mean()
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-value">{avg_digital:.0f}</div>
+                <div class="metric-label">📱 Score Digital</div>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    # ----------------------------
+    # ONGLETS PRINCIPAUX
+    # ----------------------------
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "🌍 Géographie", 
+        "⭐ Performance", 
+        "📱 Digital", 
+        "📊 Analytics", 
+        "📋 Données"
+    ])
+    
+    with tab1:
+        st.markdown('<div class="section-header"><h3>🌍 Analyse Géographique</h3></div>', 
+                   unsafe_allow_html=True)
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            # Carte géographique améliorée
+            if {"Latitude","Longitude"}.issubset(df.columns):
+                geo_df = df_filtered.dropna(subset=["Latitude","Longitude"])
+                if len(geo_df) > 0:
+                    fig_map = px.scatter_mapbox(
+                        geo_df,
+                        lat="Latitude",
+                        lon="Longitude",
+                        hover_name="Nom",
+                        hover_data=["Ville","Note_Google","Nb_Avis_Google"],
+                        color="Note_Google",
+                        size="Nb_Avis_Google",
+                        color_continuous_scale=color_theme,
+                        mapbox_style="open-street-map",
+                        height=600,
+                        title="🗺️ Répartition Géographique Interactive"
+                    )
+                    fig_map.update_layout(
+                        title_font_size=16,
+                        title_x=0.5,
+                        margin=dict(t=50, b=0, l=0, r=0)
+                    )
+                    st.plotly_chart(fig_map, use_container_width=True)
+        
+        with col2:
+            # Top villes avec style amélioré
+            st.markdown("### 🏆 Top 10 Villes")
+            top_cities = df_filtered["Ville"].value_counts().head(10)
+            fig_cities = px.bar(
+                y=top_cities.index,
+                x=top_cities.values,
+                orientation='h',
+                color=top_cities.values,
+                color_continuous_scale=color_theme,
+                title="Nombre d'optiques par ville"
+            )
+            fig_cities.update_layout(
+                height=400,
+                showlegend=False,
+                title_font_size=14
+            )
+            st.plotly_chart(fig_cities, use_container_width=True)
+            
+            # Statistiques géographiques
+            st.markdown("### 📈 Stats Géo")
+            total_cities = df_filtered['Ville'].nunique()
+            st.metric("🏙️ Villes couvertes", total_cities)
+            
+            if len(top_cities) > 0:
+                concentration = (top_cities.iloc[0] / len(df_filtered)) * 100
+                st.metric("🎯 Concentration", f"{concentration:.1f}%")
+    
+    with tab2:
+        st.markdown('<div class="section-header"><h3>⭐ Analyse de Performance</h3></div>', 
+                   unsafe_allow_html=True)
+        
+        if 'Note_Google' in df.columns:
+            # Dashboard des notes avec sous-graphiques
+            fig_perf = make_subplots(
+                rows=2, cols=3,
+                subplot_titles=(
+                    "Distribution des Notes", 
+                    "Notes vs Nombre d'Avis",
+                    "Top 5 Villes - Notes Moyennes",
+                    "Évolution par Score Digital",
+                    "Distribution Nb d'Avis",
+                    "Performance par Distance"
+                ),
+                specs=[[{"type": "histogram"}, {"type": "scatter"}, {"type": "bar"}],
+                       [{"type": "scatter"}, {"type": "histogram"}, {"type": "scatter"}]]
+            )
+            
+            # Distribution des notes
+            fig_perf.add_trace(
+                go.Histogram(x=df_filtered["Note_Google"].dropna(), 
+                           nbinsx=20, name="Notes", marker_color='lightblue'),
+                row=1, col=1
+            )
+            
+            # Notes vs Nb d'avis
+            fig_perf.add_trace(
+                go.Scatter(x=df_filtered["Note_Google"], y=df_filtered["Nb_Avis_Google"],
+                          mode="markers", name="Performance", 
+                          marker=dict(color='orange', size=6)),
+                row=1, col=2
+            )
+            
+            # Top 5 villes - notes moyennes
+            top5_cities = df_filtered["Ville"].value_counts().head(5).index
+            city_notes = df_filtered[df_filtered["Ville"].isin(top5_cities)].groupby("Ville")["Note_Google"].mean()
+            fig_perf.add_trace(
+                go.Bar(x=city_notes.index, y=city_notes.values, 
+                      name="Moyenne", marker_color='green'),
+                row=1, col=3
+            )
+            
+            # Score digital vs notes
+            if "Score_Presence_Digitale" in df.columns:
+                fig_perf.add_trace(
+                    go.Scatter(x=df_filtered["Score_Presence_Digitale"], 
+                             y=df_filtered["Note_Google"],
+                             mode="markers", name="Digital vs Note",
+                             marker=dict(color='purple', size=6)),
+                    row=2, col=1
+                )
+            
+            # Distribution Nb d'avis
+            fig_perf.add_trace(
+                go.Histogram(x=df_filtered["Nb_Avis_Google"].dropna(), 
+                           nbinsx=30, name="Nb Avis", marker_color='red'),
+                row=2, col=2
+            )
+            
+            # Distance vs notes
+            if "Distance-TARMIZ(KM)" in df.columns:
+                fig_perf.add_trace(
+                    go.Scatter(x=df_filtered["Distance-TARMIZ(KM)"], 
+                             y=df_filtered["Note_Google"],
+                             mode="markers", name="Distance vs Note",
+                             marker=dict(color='brown', size=6)),
+                    row=2, col=3
+                )
+            
+            fig_perf.update_layout(
+                height=800, 
+                title_text="📊 Dashboard Performance Complet",
+                title_x=0.5,
+                showlegend=False
+            )
+            st.plotly_chart(fig_perf, use_container_width=True)
+            
+            # Insights de performance
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                high_rated = len(df_filtered[df_filtered['Note_Google'] >= 4.0])
+                st.metric("🌟 Notes ≥ 4.0", f"{high_rated} ({high_rated/len(df_filtered)*100:.1f}%)")
+            
+            with col2:
+                high_reviews = len(df_filtered[df_filtered['Nb_Avis_Google'] >= 50])
+                st.metric("💬 Avis ≥ 50", f"{high_reviews} ({high_reviews/len(df_filtered)*100:.1f}%)")
+            
+            with col3:
+                top_performers = len(df_filtered[
+                    (df_filtered['Note_Google'] >= 4.0) & 
+                    (df_filtered['Nb_Avis_Google'] >= 20)
+                ])
+                st.metric("🏆 Top Performers", f"{top_performers} ({top_performers/len(df_filtered)*100:.1f}%)")
+    
+    with tab3:
+        st.markdown('<div class="section-header"><h3>📱 Présence Digitale</h3></div>', 
+                   unsafe_allow_html=True)
+        
+        # Analyse présence digitale
+        digital_cols = ["Site web","Réseaux sociaux","Email"]
+        digital_data = []
+        
+        for col in digital_cols:
+            if col in df.columns:
+                count = df_filtered[col].notna().sum()
+                percentage = (count / len(df_filtered)) * 100
+                digital_data.append({
+                    'Canal': col,
+                    'Nombre': count,
+                    'Pourcentage': percentage
+                })
+        
+        if digital_data:
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                digital_df = pd.DataFrame(digital_data)
+                fig_digital = px.bar(
+                    digital_df,
+                    x='Canal',
+                    y='Pourcentage',
+                    color='Pourcentage',
+                    color_continuous_scale=color_theme,
+                    title="📊 Taux de Présence par Canal",
+                    text='Pourcentage'
+                )
+                fig_digital.update_traces(
+                    texttemplate='%{text:.1f}%', 
+                    textposition='outside'
+                )
+                fig_digital.update_layout(height=400)
+                st.plotly_chart(fig_digital, use_container_width=True)
+            
+            with col2:
+                fig_pie = px.pie(
+                    digital_df,
+                    values='Nombre',
+                    names='Canal',
+                    title="🥧 Répartition des Canaux",
+                    color_discrete_sequence=px.colors.qualitative.Set3
+                )
+                fig_pie.update_layout(height=400)
+                st.plotly_chart(fig_pie, use_container_width=True)
+        
+        # Score présence digitale
+        if "Score_Presence_Digitale" in df.columns:
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                fig_score_dist = px.histogram(
+                    df_filtered, 
+                    x="Score_Presence_Digitale", 
+                    nbins=20,
+                    color_discrete_sequence=['lightcoral'],
+                    title="📈 Distribution Score Digital"
+                )
+                st.plotly_chart(fig_score_dist, use_container_width=True)
+            
+            with col2:
+                if 'Note_Google' in df.columns:
+                    fig_correlation = px.scatter(
+                        df_filtered, 
+                        x="Score_Presence_Digitale", 
+                        y="Note_Google",
+                        color="Ville",
+                        size="Nb_Avis_Google" if "Nb_Avis_Google" in df.columns else None,
+                        hover_data=["Nom"],
+                        title="🔗 Score Digital vs Performance"
+                    )
+                    st.plotly_chart(fig_correlation, use_container_width=True)
+    
+    with tab4:
+        st.markdown('<div class="section-header"><h3>📊 Analytics Avancés</h3></div>', 
+                   unsafe_allow_html=True)
+        
+        # Matrice de corrélation
+        numeric_columns = df_filtered.select_dtypes(include=[np.number]).columns
+        if len(numeric_columns) > 1:
+            st.markdown("### 🔗 Matrice de Corrélation")
+            correlation_matrix = df_filtered[numeric_columns].corr()
+            
+            fig_corr = px.imshow(
+                correlation_matrix,
+                color_continuous_scale=color_theme,
+                title="Corrélations entre variables numériques"
+            )
+            fig_corr.update_layout(height=500)
+            st.plotly_chart(fig_corr, use_container_width=True)
+        
+        # Analyse par segments
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if "Taille_Entreprise" in df.columns:
+                st.markdown("### 🏢 Analyse par Taille")
+                size_analysis = df_filtered.groupby('Taille_Entreprise').agg({
+                    'Note_Google': 'mean',
+                    'Nb_Avis_Google': 'mean',
+                    'Score_Presence_Digitale': 'mean'
+                }).round(2)
+                
+                st.dataframe(size_analysis, use_container_width=True)
+                
+                fig_size = px.pie(
+                    df_filtered, 
+                    names="Taille_Entreprise",
+                    title="Répartition par Taille",
+                    color_discrete_sequence=px.colors.qualitative.Pastel
+                )
+                st.plotly_chart(fig_size, use_container_width=True)
+        
+        with col2:
+            if "Anciennete_Estimee" in df.columns:
+                st.markdown("### 📅 Analyse Temporelle")
+                fig_age = px.histogram(
+                    df_filtered,
+                    x="Anciennete_Estimee",
+                    nbins=15,
+                    color_discrete_sequence=['lightseagreen'],
+                    title="Distribution de l'Ancienneté"
+                )
+                st.plotly_chart(fig_age, use_container_width=True)
+                
+                # Ancienneté vs Performance
+                if 'Note_Google' in df.columns:
+                    fig_age_perf = px.scatter(
+                        df_filtered,
+                        x="Anciennete_Estimee",
+                        y="Note_Google",
+                        color="Score_Presence_Digitale" if "Score_Presence_Digitale" in df.columns else None,
+                        title="Ancienneté vs Performance"
+                    )
+                    st.plotly_chart(fig_age_perf, use_container_width=True)
+        
+        # Benchmarking
+        st.markdown("### 🎯 Benchmarking")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            if 'Note_Google' in df.columns:
+                top_25_pct = df_filtered['Note_Google'].quantile(0.75)
+                st.metric("🥇 Top 25% Notes", f"{top_25_pct:.2f}+")
+        
+        with col2:
+            if 'Nb_Avis_Google' in df.columns:
+                median_reviews = df_filtered['Nb_Avis_Google'].median()
+                st.metric("📊 Médiane Avis", f"{median_reviews:.0f}")
+        
+        with col3:
+            if 'Score_Presence_Digitale' in df.columns:
+                top_digital = df_filtered['Score_Presence_Digitale'].quantile(0.90)
+                st.metric("🚀 Top 10% Digital", f"{top_digital:.0f}+")
+        
+        with col4:
+            if 'Distance-TARMIZ(KM)' in df.columns:
+                close_to_tarmiz = len(df_filtered[df_filtered['Distance-TARMIZ(KM)'] <= 10])
+                st.metric("📍 Proche TARMIZ (<10km)", close_to_tarmiz)
+    
+    with tab5:
+        st.markdown('<div class="section-header"><h3>📋 Données Détaillées</h3></div>', 
+                   unsafe_allow_html=True)
+        
+        # Options d'affichage
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            show_all = st.checkbox("Afficher toutes les colonnes", False)
+        
+        with col2:
+            if not show_all:
+                display_cols = st.multiselect(
+                    "Colonnes à afficher:",
+                    df_filtered.columns.tolist(),
+                    default=['Nom', 'Ville', 'Note_Google', 'Nb_Avis_Google'][:4]
+                )
+            else:
+                display_cols = df_filtered.columns.tolist()
+        
+        with col3:
+            sort_by = st.selectbox(
+                "Trier par:",
+                ['Note_Google', 'Nb_Avis_Google', 'Score_Presence_Digitale', 'Distance-TARMIZ(KM)']
+            )
+        
+        # Affichage du tableau
+        if display_cols:
+            df_display = df_filtered[display_cols].copy()
+            
+            if sort_by in df_display.columns:
+                df_display = df_display.sort_values(sort_by, ascending=False)
+            
+            st.dataframe(
+                df_display,
+                use_container_width=True,
+                height=400
+            )
+            
+            # Statistiques du tableau
+            st.markdown("### 📈 Statistiques")
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric("📊 Lignes affichées", len(df_display))
+            
+            with col2:
+                st.metric("📋 Colonnes", len(display_cols))
+            
+            with col3:
+                if 'Note_Google' in df_display.columns:
+                    avg_note_filtered = df_display['Note_Google'].mean()
+                    st.metric("⭐ Moyenne filtrée", f"{avg_note_filtered:.2f}")
+            
+            with col4:
+                if 'Score_Presence_Digitale' in df_display.columns:
+                    avg_digital_filtered = df_display['Score_Presence_Digitale'].mean()
+                    st.metric("📱 Score moy. filtré", f"{avg_digital_filtered:.0f}")
+        
+        # Export des données
+        st.markdown("### 📥 Export")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            csv = df_filtered.to_csv(index=False)
+            st.download_button(
+                label="📊 Télécharger CSV (Filtré)",
+                data=csv,
+                file_name=f"optiques_filtered_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv"
+            )
+        
+        with col2:
+            if display_cols:
+                csv_display = df_display.to_csv(index=False)
+                st.download_button(
+                    label="📋 Télécharger Sélection",
+                    data=csv_display,
+                    file_name=f"optiques_selection_{datetime.now().strftime('%Y%m%d')}.csv",
+                    mime="text/csv"
+                )
+    
+    # ----------------------------
+    # FOOTER AVEC RÉSUMÉ
+    # ----------------------------
     st.markdown("---")
-    st.markdown("## 📸 GUIDE CAPTURE D'ÉCRAN PROFESSIONNEL")
+    st.markdown("## 📈 Résumé Exécutif")
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.markdown("""
-        <div class="chart-container">
-            <h4>🖱️ Méthode 1: Clic Droit</h4>
-            <ol>
-                <li>Clic droit sur le graphique</li>
-                <li>"Télécharger l'image en tant que PNG"</li>
-                <li>Résolution: 1200x800 HD</li>
-                <li>Format: PNG transparent</li>
-            </ol>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("### 🏆 Performance")
+        if 'Note_Google' in df.columns:
+            excellent = len(df_filtered[df_filtered['Note_Google'] >= 4.5])
+            st.write(f"• **Excellentes** (≥4.5): {excellent} ({excellent/len(df_filtered)*100:.1f}%)")
+            good = len(df_filtered[df_filtered['Note_Google'] >= 4.0])
+            st.write(f"• **Bonnes** (≥4.0): {good} ({good/len(df_filtered)*100:.1f}%)")
     
     with col2:
-        st.markdown("""
-        <div class="chart-container">
-            <h4>📸 Méthode 2: Boutons Dédiés</h4>
-            <ol>
-                <li>Utilisez les boutons 📸 à droite</li>
-                <li>Téléchargement automatique</li>
-                <li>Nom de fichier optimisé</li>
-                <li>Qualité professionnelle</li>
-            </ol>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("### 📱 Digital")
+        if all(col in df.columns for col in ['Site web', 'Email', 'Réseaux sociaux']):
+            complete_digital = len(df_filtered[
+                df_filtered['Site web'].notna() & 
+                df_filtered['Email'].notna() & 
+                df_filtered['Réseaux sociaux'].notna()
+            ])
+            st.write(f"• **Présence complète**: {complete_digital} ({complete_digital/len(df_filtered)*100:.1f}%)")
     
     with col3:
-        st.markdown("""
-        <div class="chart-container">
-            <h4>🎯 Méthode 3: Capture Écran</h4>
-            <ol>
-                <li>Mode plein écran (F11)</li>
-                <li>Outil Capture Windows (Win+Shift+S)</li>
-                <li>Sélection zone graphique</li>
-                <li>Sauvegarde manuelle</li>
-            </ol>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("### 🌍 Géographie")
+        total_cities = df_filtered['Ville'].nunique()
+        top_city = df_filtered['Ville'].value_counts().index[0]
+        top_count = df_filtered['Ville'].value_counts().iloc[0]
+        st.write(f"• **Villes couvertes**: {total_cities}")
+        st.write(f"• **Leader**: {top_city} ({top_count})")
     
-    # =================== RÉSUMÉ FINAL ===================
-    st.markdown(f"""
-    <div class="main-header">
-        <h2>🎉 ANALYSE TERMINÉE - {len(df_filtered)} OPTIQUES ANALYSÉES</h2>
-        <p>✅ 12 Visualisations Avancées • 📸 Captures HD • 📊 Analytics Complets</p>
-        <p><em>Dashboard généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')}</em></p>
-    </div>
-    """, unsafe_allow_html=True)
+    # Timestamp
+    st.markdown(f"*Dernière mise à jour: {datetime.now().strftime('%d/%m/%Y à %H:%M')}*")
 
 else:
-    st.error("❌ Fichier OPTIQUESS.xlsx introuvable")
-    st.markdown("""
-    ### 📁 Instructions:
-    1. Placez le fichier **OPTIQUESS.xlsx** dans le même dossier
-    2. Vérifiez le nom exact du fichier
-    3. Redémarrez l'application Streamlit
-    """, unsafe_allow_html=True)
-  
+    st.error("❌ Impossible de charger le fichier OPTIQUESS.xlsx")
+    st.info("Vérifiez que le fichier existe dans le même répertoire que ce script.")
