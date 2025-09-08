@@ -1,90 +1,97 @@
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import openpyxl  # Pour lire les fichiers Excel
+import streamlit as st
 
-# Charger les données
-df = pd.read_excel('OPTIQUESS.xlsx', engine='openpyxl')
+# ----------------------------
+# 1. Charger les données CSV
+# ----------------------------
+df = pd.read_csv("entreprises.csv")  # Remplacer par ton CSV
 
-# Configuration du style
-plt.style.use('seaborn-v0_8')
-sns.set_palette("husl")
+# ----------------------------
+# 2. Nettoyage des colonnes numériques
+# ----------------------------
+numeric_cols = ["Note_Google", "Nb_Avis_Google", "Score_Presence_Digitale",
+                "Distance-TARMIZ(KM)", "Anciennete_Estimee"]
+for col in numeric_cols:
+    if col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce")  # force conversion
 
-# 1. Vue d'ensemble des données
-print(f"Données chargées: {df.shape[0]} entreprises optiques")
+# ----------------------------
+# 3. Titre de l'app Streamlit
+# ----------------------------
+st.title("Dashboard - Secteur Optique")
 
-# 2. Distribution par ville
-fig1 = px.bar(
-    x=df['Ville'].value_counts().head(10).index,
-    y=df['Ville'].value_counts().head(10).values,
-    title="Top 10 des villes - Entreprises Optiques",
-    labels={'x': 'Ville', 'y': 'Nombre d\'entreprises'}
-)
-fig1.show()
+# ----------------------------
+# 4. Top villes
+# ----------------------------
+st.subheader("Top 10 Villes")
+top_cities = df["Ville"].value_counts().head(10)
+fig1 = px.bar(x=top_cities.index, y=top_cities.values,
+              labels={"x":"Ville","y":"Nombre d'entreprises"},
+              title="Top 10 des villes")
+st.plotly_chart(fig1)
 
-# 3. Carte géographique
-if 'Latitude' in df.columns and 'Longitude' in df.columns:
-    geo_df = df.dropna(subset=['Latitude', 'Longitude'])
+# ----------------------------
+# 5. Carte géographique
+# ----------------------------
+if {"Latitude","Longitude"}.issubset(df.columns):
+    st.subheader("Répartition Géographique")
+    geo_df = df.dropna(subset=["Latitude","Longitude"])
     fig2 = px.scatter_mapbox(
         geo_df,
         lat="Latitude",
         lon="Longitude",
         hover_name="Nom",
-        hover_data=['Ville', 'Note_Google', 'Nb_Avis_Google'],
-        color='Note_Google',
-        size='Nb_Avis_Google',
+        hover_data=["Ville","Note_Google","Nb_Avis_Google"],
+        color="Note_Google",
+        size="Nb_Avis_Google",
         color_continuous_scale="Viridis",
-        title="Répartition Géographique des Optiques",
         mapbox_style="open-street-map",
-        height=600
+        height=500,
+        title="Répartition Géographique des Optiques"
     )
-    fig2.show()
+    st.plotly_chart(fig2)
 
-# 4. Analyse des notes Google
+# ----------------------------
+# 6. Analyse Notes Google
+# ----------------------------
+st.subheader("Analyse des Notes Google")
 fig3 = make_subplots(
     rows=2, cols=2,
-    subplot_titles=('Distribution des Notes', 'Notes vs Nombre d\'Avis', 
-                   'Notes par Ville (Top 5)', 'Histogram Nombre d\'Avis')
+    subplot_titles=("Distribution des Notes", "Notes vs Nombre d'Avis",
+                    "Notes par Ville (Top 5)", "Histogram Nombre d'Avis")
 )
 
 # Distribution des notes
-fig3.add_trace(
-    go.Histogram(x=df['Note_Google'].dropna(), name='Notes', nbinsx=20),
-    row=1, col=1
-)
+fig3.add_trace(go.Histogram(x=df["Note_Google"].dropna(), nbinsx=20, name="Notes"),
+               row=1, col=1)
 
-# Scatter Notes vs Avis
-fig3.add_trace(
-    go.Scatter(x=df['Note_Google'], y=df['Nb_Avis_Google'], 
-              mode='markers', name='Notes vs Avis'),
-    row=1, col=2
-)
+# Notes vs Nb d'avis
+fig3.add_trace(go.Scatter(x=df["Note_Google"], y=df["Nb_Avis_Google"],
+                          mode="markers", name="Notes vs Avis"), row=1, col=2)
 
-# Notes par ville (top 5)
-top_cities = df['Ville'].value_counts().head(5).index
-city_notes = df[df['Ville'].isin(top_cities)].groupby('Ville')['Note_Google'].mean()
-fig3.add_trace(
-    go.Bar(x=city_notes.index, y=city_notes.values, name='Moyenne par ville'),
-    row=2, col=1
-)
+# Notes par ville (Top 5)
+top5 = df["Ville"].value_counts().head(5).index
+city_notes = df[df["Ville"].isin(top5)].groupby("Ville")["Note_Google"].mean()
+fig3.add_trace(go.Bar(x=city_notes.index, y=city_notes.values, name="Moyenne par ville"),
+               row=2, col=1)
 
-# Histogram nombre d'avis
-fig3.add_trace(
-    go.Histogram(x=df['Nb_Avis_Google'].dropna(), name='Nb Avis', nbinsx=30),
-    row=2, col=2
-)
+# Histogram Nb d'avis
+fig3.add_trace(go.Histogram(x=df["Nb_Avis_Google"].dropna(), nbinsx=30, name="Nb Avis"),
+               row=2, col=2)
 
-fig3.update_layout(height=800, title_text="Analyse des Métriques Google")
-fig3.show()
+fig3.update_layout(height=700, title_text="Analyse des Métriques Google")
+st.plotly_chart(fig3)
 
-# 5. Présence digitale
-digital_cols = ['Site web', 'Réseaux sociaux', 'Email']
+# ----------------------------
+# 7. Présence digitale
+# ----------------------------
+st.subheader("Présence Digitale")
+digital_cols = ["Site web","Réseaux sociaux","Email"]
 digital_presence = []
 labels = []
-
 for col in digital_cols:
     if col in df.columns:
         count = df[col].notna().sum()
@@ -92,122 +99,55 @@ for col in digital_cols:
         labels.append(col)
 
 fig4 = go.Figure()
-fig4.add_trace(go.Bar(x=labels, y=digital_presence, 
-                     text=[f"{val} ({val/len(df)*100:.1f}%)" for val in digital_presence],
-                     textposition='auto'))
-fig4.update_layout(title="Présence Digitale des Optiques", 
-                  yaxis_title="Nombre d'entreprises")
-fig4.show()
+fig4.add_trace(go.Bar(x=labels, y=digital_presence,
+                      text=[f"{v} ({v/len(df)*100:.1f}%)" for v in digital_presence],
+                      textposition="auto"))
+fig4.update_layout(yaxis_title="Nombre d'entreprises", title="Présence Digitale")
+st.plotly_chart(fig4)
 
-# 6. Analyse de la distance par rapport à TARMIZ
-if 'Distance-TARMIZ(KM)' in df.columns:
-    fig5 = make_subplots(
-        rows=1, cols=2,
-        subplot_titles=('Distribution des Distances', 'Distance vs Note Google')
-    )
-    
-    fig5.add_trace(
-        go.Histogram(x=df['Distance-TARMIZ(KM)'].dropna(), name='Distance'),
-        row=1, col=1
-    )
-    
-    fig5.add_trace(
-        go.Scatter(x=df['Distance-TARMIZ(KM)'], y=df['Note_Google'], 
-                  mode='markers', name='Distance vs Note'),
-        row=1, col=2
-    )
-    
-    fig5.update_layout(height=400, title_text="Analyse des Distances par rapport à TARMIZ")
-    fig5.show()
+# ----------------------------
+# 8. Distance TARMIZ
+# ----------------------------
+if "Distance-TARMIZ(KM)" in df.columns:
+    st.subheader("Analyse de la Distance par rapport à TARMIZ")
+    fig5 = make_subplots(rows=1, cols=2, subplot_titles=("Distribution des Distances","Distance vs Note Google"))
+    fig5.add_trace(go.Histogram(x=df["Distance-TARMIZ(KM)"].dropna(), name="Distance"), row=1, col=1)
+    fig5.add_trace(go.Scatter(x=df["Distance-TARMIZ(KM)"], y=df["Note_Google"], mode="markers", name="Distance vs Note"), row=1, col=2)
+    fig5.update_layout(height=400)
+    st.plotly_chart(fig5)
 
-# 7. Score de présence digitale
-if 'Score_Presence_Digitale' in df.columns:
-    fig6 = px.histogram(df, x='Score_Presence_Digitale', 
-                       title="Distribution du Score de Présence Digitale",
-                       nbins=20)
-    fig6.show()
-    
-    # Corrélation Score Digital vs Note Google
-    fig7 = px.scatter(df, x='Score_Presence_Digitale', y='Note_Google',
-                     hover_data=['Nom', 'Ville'],
-                     title="Score Présence Digitale vs Note Google")
-    fig7.show()
+# ----------------------------
+# 9. Score Présence Digitale
+# ----------------------------
+if "Score_Presence_Digitale" in df.columns:
+    st.subheader("Score de Présence Digitale")
+    fig6 = px.histogram(df, x="Score_Presence_Digitale", nbins=20, title="Distribution du Score Digital")
+    st.plotly_chart(fig6)
 
-# 8. Taille des entreprises
-if 'Taille_Entreprise' in df.columns:
-    fig8 = px.pie(df, names='Taille_Entreprise', 
-                 title="Répartition par Taille d'Entreprise")
-    fig8.show()
+    fig7 = px.scatter(df, x="Score_Presence_Digitale", y="Note_Google",
+                      hover_data=["Nom","Ville"], title="Score Digital vs Note Google")
+    st.plotly_chart(fig7)
 
-# 9. Dashboard final avec métriques clés
-fig_final = make_subplots(
-    rows=3, cols=2,
-    subplot_titles=('Top 10 Villes', 'Notes Google Distribution',
-                   'Présence Digitale', 'Distance de TARMIZ',
-                   'Score Digital vs Note', 'Ancienneté Estimée'),
-    specs=[[{"type": "bar"}, {"type": "histogram"}],
-           [{"type": "bar"}, {"type": "histogram"}],
-           [{"type": "scatter"}, {"type": "histogram"}]]
-)
+# ----------------------------
+# 10. Taille des entreprises
+# ----------------------------
+if "Taille_Entreprise" in df.columns:
+    st.subheader("Répartition par Taille d'Entreprise")
+    fig8 = px.pie(df, names="Taille_Entreprise", title="Taille des Entreprises")
+    st.plotly_chart(fig8)
 
-# Top villes
-top_cities = df['Ville'].value_counts().head(10)
-fig_final.add_trace(
-    go.Bar(x=top_cities.index, y=top_cities.values, name='Villes'),
-    row=1, col=1
-)
+# ----------------------------
+# 11. Résumé statistique
+# ----------------------------
+st.subheader("Résumé Statistique")
+st.write(f"Total entreprises : {len(df)}")
+if "Note_Google" in df.columns:
+    st.write(f"Note moyenne Google : {df['Note_Google'].mean():.2f}")
+if "Distance-TARMIZ(KM)" in df.columns:
+    st.write(f"Distance moyenne de TARMIZ : {df['Distance-TARMIZ(KM)'].mean():.1f} km")
+if "Score_Presence_Digitale" in df.columns:
+    st.write(f"Score digital moyen : {df['Score_Presence_Digitale'].mean():.1f}")
+top_city = df["Ville"].value_counts().idxmax()
+st.write(f"Ville leader : {top_city} ({df['Ville'].value_counts().max()} optiques)")
 
-# Notes Google
-fig_final.add_trace(
-    go.Histogram(x=df['Note_Google'].dropna(), name='Notes'),
-    row=1, col=2
-)
-
-# Présence digitale
-fig_final.add_trace(
-    go.Bar(x=labels, y=digital_presence, name='Digital'),
-    row=2, col=1
-)
-
-# Distance TARMIZ
-if 'Distance-TARMIZ(KM)' in df.columns:
-    fig_final.add_trace(
-        go.Histogram(x=df['Distance-TARMIZ(KM)'].dropna(), name='Distance'),
-        row=2, col=2
-    )
-
-# Score vs Note
-if 'Score_Presence_Digitale' in df.columns:
-    fig_final.add_trace(
-        go.Scatter(x=df['Score_Presence_Digitale'], y=df['Note_Google'], 
-                  mode='markers', name='Score vs Note'),
-        row=3, col=1
-    )
-
-# Ancienneté
-if 'Anciennete_Estimee' in df.columns:
-    fig_final.add_trace(
-        go.Histogram(x=df['Anciennete_Estimee'].dropna(), name='Ancienneté'),
-        row=3, col=2
-    )
-
-fig_final.update_layout(height=1000, title_text="Dashboard Complet - Secteur Optique", 
-                       showlegend=False)
-fig_final.show()
-
-# 10. Résumé statistique
-print("\n=== RÉSUMÉ STATISTIQUE ===")
-print(f"Total entreprises optiques: {len(df)}")
-if 'Note_Google' in df.columns:
-    print(f"Note Google moyenne: {df['Note_Google'].mean():.2f}")
-if 'Distance-TARMIZ(KM)' in df.columns:
-    print(f"Distance moyenne de TARMIZ: {df['Distance-TARMIZ(KM)'].mean():.1f} km")
-if 'Score_Presence_Digitale' in df.columns:
-    print(f"Score présence digitale moyen: {df['Score_Presence_Digitale'].mean():.1f}")
-
-# Ville avec le plus d'optiques
-top_city = df['Ville'].value_counts().index[0]
-top_city_count = df['Ville'].value_counts().iloc[0]
-print(f"Ville leader: {top_city} ({top_city_count} optiques)")
-
-print("\n✅ Toutes les visualisations ont été générées!")
+st.success("✅ Toutes les visualisations ont été générées !")
