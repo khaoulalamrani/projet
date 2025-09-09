@@ -10,124 +10,77 @@ from datetime import datetime
 # CONFIGURATION DE LA PAGE
 # ----------------------------
 st.set_page_config(
-    page_title="Dashboard Optiques - Simple",
+    page_title="Dashboard Optiques",
     page_icon="👓",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # ----------------------------
-# CSS ULTRA SIMPLE ET CLAIR
+# CSS PERSONNALISÉ
 # ----------------------------
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;600;700&display=swap');
-    
-    .main {
-        font-family: 'Roboto', sans-serif;
-        background: #f8f9fa;
-    }
-    
-    .big-title {
-        background: linear-gradient(90deg, #4CAF50, #2196F3);
-        color: white;
-        padding: 3rem 2rem;
-        border-radius: 20px;
-        text-align: center;
+    /* Thème principal */
+    .main-header {
+        background: linear-gradient(90deg, #1f77b4, #ff7f0e);
+        padding: 1rem;
+        border-radius: 10px;
         margin-bottom: 2rem;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    }
-    
-    .big-title h1 {
-        font-size: 3.5rem;
-        margin: 0;
-        font-weight: 700;
-    }
-    
-    .big-title p {
-        font-size: 1.5rem;
-        margin: 1rem 0 0 0;
-        opacity: 0.9;
-    }
-    
-    .super-card {
-        background: white;
-        padding: 2rem;
-        border-radius: 15px;
         text-align: center;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
-        margin-bottom: 1.5rem;
-        border-left: 5px solid #4CAF50;
-    }
-    
-    .super-number {
-        font-size: 4rem;
-        font-weight: 700;
-        color: #2196F3;
-        margin: 0;
-        line-height: 1;
-    }
-    
-    .super-text {
-        font-size: 1.3rem;
-        color: #666;
-        margin: 1rem 0 0 0;
-        font-weight: 500;
-    }
-    
-    .section-title {
-        background: #4CAF50;
         color: white;
-        padding: 1.5rem;
+    }
+    
+    .metric-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 1rem;
         border-radius: 10px;
         text-align: center;
-        font-size: 1.8rem;
-        font-weight: 600;
-        margin: 2rem 0 1.5rem 0;
+        color: white;
+        box-shadow: 0 4px 15px 0 rgba(31, 38, 135, 0.37);
+        margin-bottom: 1rem;
     }
     
-    .explanation-box {
-        background: #e8f5e8;
-        border: 2px solid #4CAF50;
-        border-radius: 10px;
-        padding: 1.5rem;
-        margin: 1rem 0;
-        font-size: 1.1rem;
-        line-height: 1.6;
-    }
-    
-    .good-news {
-        background: #d4edda;
-        border: 2px solid #28a745;
-        color: #155724;
-    }
-    
-    .warning-news {
-        background: #fff3cd;
-        border: 2px solid #ffc107;
-        color: #856404;
-    }
-    
-    .info-news {
-        background: #d1ecf1;
-        border: 2px solid #17a2b8;
-        color: #0c5460;
-    }
-    
-    .emoji-big {
+    .metric-value {
         font-size: 2rem;
-        margin-right: 10px;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    
+    .metric-label {
+        font-size: 0.9rem;
+        opacity: 0.8;
+    }
+    
+    .section-header {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        color: white;
+        margin: 1rem 0;
+    }
+    
+    .sidebar .sidebar-content {
+        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .filter-container {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 1rem;
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
+        margin-bottom: 1rem;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # ----------------------------
-# TITRE PRINCIPAL SIMPLE
+# TITRE PRINCIPAL
 # ----------------------------
 st.markdown("""
-<div class="big-title">
-    <h1>👓 Mes Optiques</h1>
-    <p>Comprendre simplement le marché des opticiens</p>
+<div class="main-header">
+    <h1>👓 Dashboard Secteur Optique - Analyse Complète</h1>
+    <p>Tableau de bord interactif pour l'analyse du marché optique</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -138,11 +91,14 @@ st.markdown("""
 def load_data():
     try:
         df = pd.read_excel('OPTIQUESS.xlsx', engine='openpyxl')
+        
+        # Nettoyage des colonnes numériques
         numeric_cols = ["Note_Google", "Nb_Avis_Google", "Score_Presence_Digitale",
                        "Distance-TARMIZ(KM)", "Anciennete_Estimee"]
         for col in numeric_cols:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
+        
         return df
     except Exception as e:
         st.error(f"Erreur de chargement: {e}")
@@ -152,817 +108,563 @@ df = load_data()
 
 if df is not None:
     # ----------------------------
-    # FILTRES SIMPLES
+    # SIDEBAR AVEC FILTRES
     # ----------------------------
-    st.sidebar.markdown("## 🔍 Choisir les optiques à voir")
+    st.sidebar.markdown("## 🔍 Filtres et Options")
     
-    # Filtre ville simple
-    cities = ['Toutes les villes'] + sorted(df['Ville'].dropna().unique().tolist())
-    selected_city = st.sidebar.selectbox("Dans quelle ville ?", cities)
+    # Filtre par ville
+    cities = ['Toutes'] + sorted(df['Ville'].dropna().unique().tolist())
+    selected_city = st.sidebar.selectbox("🏙️ Filtrer par ville", cities)
     
-    # Filtre note simple
+    # Filtre par note
     if 'Note_Google' in df.columns:
-        note_choice = st.sidebar.radio(
-            "Quelles notes afficher ?",
-            ["Toutes les notes", "Seulement les bonnes (≥4.0)", "Seulement les excellentes (≥4.5)"]
+        note_range = st.sidebar.slider(
+            "⭐ Plage de notes Google",
+            float(df['Note_Google'].min()),
+            float(df['Note_Google'].max()),
+            (float(df['Note_Google'].min()), float(df['Note_Google'].max())),
+            step=0.1
+        )
+    
+    # Filtre par distance
+    if 'Distance-TARMIZ(KM)' in df.columns:
+        max_distance = st.sidebar.slider(
+            "📍 Distance max de TARMIZ (km)",
+            0.0,
+            float(df['Distance-TARMIZ(KM)'].max()),
+            float(df['Distance-TARMIZ(KM)'].max())
         )
     
     # Application des filtres
     df_filtered = df.copy()
     
-    if selected_city != 'Toutes les villes':
+    if selected_city != 'Toutes':
         df_filtered = df_filtered[df_filtered['Ville'] == selected_city]
     
     if 'Note_Google' in df.columns:
-        if note_choice == "Seulement les bonnes (≥4.0)":
-            df_filtered = df_filtered[df_filtered['Note_Google'] >= 4.0]
-        elif note_choice == "Seulement les excellentes (≥4.5)":
-            df_filtered = df_filtered[df_filtered['Note_Google'] >= 4.5]
+        df_filtered = df_filtered[
+            (df_filtered['Note_Google'] >= note_range[0]) & 
+            (df_filtered['Note_Google'] <= note_range[1])
+        ]
+    
+    if 'Distance-TARMIZ(KM)' in df.columns:
+        df_filtered = df_filtered[df_filtered['Distance-TARMIZ(KM)'] <= max_distance]
+    
+    # Options d'affichage
+    st.sidebar.markdown("## 🎨 Options d'affichage")
+    color_theme = st.sidebar.selectbox(
+        "Thème de couleurs",
+        ["Viridis", "Plasma", "Inferno", "Magma", "Cividis"]
+    )
     
     # ----------------------------
-    # CHIFFRES CLÉS TRÈS SIMPLES
+    # MÉTRIQUES PRINCIPALES
     # ----------------------------
-    st.markdown('<div class="section-title">📊 Les Chiffres Importants</div>', unsafe_allow_html=True)
+    st.markdown("## 📊 Métriques Clés")
     
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     
     with col1:
-        total = len(df_filtered)
+        total_optiques = len(df_filtered)
         st.markdown(f"""
-        <div class="super-card">
-            <div class="super-number">{total:,}</div>
-            <div class="super-text">🏪 Optiques trouvées</div>
+        <div class="metric-card">
+            <div class="metric-value">{total_optiques}</div>
+            <div class="metric-label">📊 Total Optiques</div>
         </div>
         """, unsafe_allow_html=True)
     
     with col2:
         if 'Note_Google' in df.columns:
             avg_note = df_filtered['Note_Google'].mean()
-            note_emoji = "🌟" if avg_note >= 4.5 else "⭐" if avg_note >= 4.0 else "🔸"
             st.markdown(f"""
-            <div class="super-card">
-                <div class="super-number">{avg_note:.1f}/5</div>
-                <div class="super-text">{note_emoji} Note moyenne</div>
+            <div class="metric-card">
+                <div class="metric-value">{avg_note:.2f}</div>
+                <div class="metric-label">⭐ Note Moyenne</div>
             </div>
             """, unsafe_allow_html=True)
     
     with col3:
-        cities_count = df_filtered['Ville'].nunique()
-        st.markdown(f"""
-        <div class="super-card">
-            <div class="super-number">{cities_count}</div>
-            <div class="super-text">🏙️ Villes différentes</div>
-        </div>
-        """, unsafe_allow_html=True)
+        if 'Site web' in df.columns:
+            web_presence = (df_filtered['Site web'].notna().sum() / len(df_filtered)) * 100
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-value">{web_presence:.1f}%</div>
+                <div class="metric-label">🌐 Présence Web</div>
+            </div>
+            """, unsafe_allow_html=True)
     
     with col4:
-        if 'Note_Google' in df.columns:
-            excellent = len(df_filtered[df_filtered['Note_Google'] >= 4.5])
-            pct_excellent = (excellent / len(df_filtered)) * 100
+        if 'Distance-TARMIZ(KM)' in df.columns:
+            avg_distance = df_filtered['Distance-TARMIZ(KM)'].mean()
             st.markdown(f"""
-            <div class="super-card">
-                <div class="super-number">{pct_excellent:.0f}%</div>
-                <div class="super-text">🏆 Optiques excellentes</div>
+            <div class="metric-card">
+                <div class="metric-value">{avg_distance:.1f}</div>
+                <div class="metric-label">📍 Distance Moy. TARMIZ</div>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    with col5:
+        if 'Score_Presence_Digitale' in df.columns:
+            avg_digital = df_filtered['Score_Presence_Digitale'].mean()
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-value">{avg_digital:.0f}</div>
+                <div class="metric-label">📱 Score Digital</div>
             </div>
             """, unsafe_allow_html=True)
     
     # ----------------------------
-    # ONGLETS ULTRA-SIMPLES
+    # ONGLETS PRINCIPAUX
     # ----------------------------
-    tab1, tab2, tab3, tab4 = st.tabs([
-        "🗺️ Où sont les optiques ?", 
-        "⭐ Qui a les meilleures notes ?", 
-        "💻 Qui est sur internet ?",
-        "📋 Voir toutes les données"
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "🌍 Géographie", 
+        "⭐ Performance", 
+        "📱 Digital", 
+        "📊 Analytics", 
+        "📋 Données"
     ])
     
     with tab1:
-        st.markdown('<div class="section-title">🗺️ Où se trouvent les optiques ?</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header"><h3>🌍 Analyse Géographique</h3></div>', 
+                   unsafe_allow_html=True)
         
-        # Graphique simple des villes
-        st.markdown("### 📊 Combien d'optiques par ville ?")
+        col1, col2 = st.columns([2, 1])
         
-        city_counts = df_filtered['Ville'].value_counts().head(15)
+        with col1:
+            # Carte géographique améliorée
+            if {"Latitude","Longitude"}.issubset(df.columns):
+                geo_df = df_filtered.dropna(subset=["Latitude","Longitude"])
+                if len(geo_df) > 0:
+                    fig_map = px.scatter_mapbox(
+                        geo_df,
+                        lat="Latitude",
+                        lon="Longitude",
+                        hover_name="Nom",
+                        hover_data=["Ville","Note_Google","Nb_Avis_Google"],
+                        color="Note_Google",
+                        size="Nb_Avis_Google",
+                        color_continuous_scale=color_theme,
+                        mapbox_style="open-street-map",
+                        height=600,
+                        title="🗺️ Répartition Géographique Interactive"
+                    )
+                    fig_map.update_layout(
+                        title_font_size=16,
+                        title_x=0.5,
+                        margin=dict(t=50, b=0, l=0, r=0)
+                    )
+                    st.plotly_chart(fig_map, use_container_width=True)
         
-        # Graphique en barres colorées très simple
-        fig_cities = go.Figure(data=[
-            go.Bar(
-                x=city_counts.values,
-                y=city_counts.index[::-1],  # Inverser pour le plus grand en haut
+        with col2:
+            # Top villes avec style amélioré
+            st.markdown("### 🏆 Top 10 Villes")
+            top_cities = df_filtered["Ville"].value_counts().head(10)
+            fig_cities = px.bar(
+                y=top_cities.index,
+                x=top_cities.values,
                 orientation='h',
-                marker=dict(
-                    color=['#4CAF50' if i == 0 else '#2196F3' if i < 3 else '#FFC107' if i < 5 else '#FF9800' 
-                           for i in range(len(city_counts))],
-                    line=dict(color='white', width=2)
-                ),
-                text=city_counts.values[::-1],
-                textposition='outside',
-                textfont=dict(size=14, color='black', family="Roboto")
+                color=top_cities.values,
+                color_continuous_scale=color_theme,
+                title="Nombre d'optiques par ville"
             )
-        ])
-        
-        fig_cities.update_layout(
-            title=dict(
-                text="🏆 Le classement des villes avec le plus d'optiques",
-                font=dict(size=20, color='#333', family="Roboto"),
-                x=0.5
-            ),
-            xaxis=dict(
-                title="Nombre d'optiques",
-                titlefont=dict(size=16),
-                tickfont=dict(size=12),
-                showgrid=True,
-                gridcolor='lightgray'
-            ),
-            yaxis=dict(
-                titlefont=dict(size=16),
-                tickfont=dict(size=12)
-            ),
-            height=600,
-            paper_bgcolor='white',
-            plot_bgcolor='white',
-            margin=dict(l=100, r=50, t=80, b=50)
-        )
-        
-        st.plotly_chart(fig_cities, use_container_width=True)
-        
-        # Explication simple
-        top_city = city_counts.index[0]
-        top_count = city_counts.iloc[0]
-        st.markdown(f"""
-        <div class="explanation-box good-news">
-            <span class="emoji-big">🏆</span>
-            <strong>La ville avec le plus d'optiques est {top_city}</strong> avec {top_count} optiques.
-            <br><br>
-            💡 <strong>Ce que ça veut dire :</strong> {top_city} a plus de concurrence entre optiques, 
-            mais aussi plus de choix pour les clients.
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Carte si coordonnées disponibles
-        if {"Latitude", "Longitude"}.issubset(df.columns):
-            st.markdown("### 🗺️ Sur la carte")
-            geo_df = df_filtered.dropna(subset=["Latitude", "Longitude"]).head(100)  # Limiter pour la performance
+            fig_cities.update_layout(
+                height=400,
+                showlegend=False,
+                title_font_size=14
+            )
+            st.plotly_chart(fig_cities, use_container_width=True)
             
-            if len(geo_df) > 0:
-                fig_map = px.scatter_mapbox(
-                    geo_df,
-                    lat="Latitude",
-                    lon="Longitude",
-                    hover_name="Nom",
-                    hover_data=["Ville", "Note_Google"],
-                    color="Note_Google",
-                    size_max=15,
-                    zoom=6,
-                    mapbox_style="open-street-map",
-                    height=500,
-                    color_continuous_scale="RdYlGn"
-                )
-                
-                fig_map.update_layout(
-                    title=dict(
-                        text="📍 Où se trouvent les optiques sur la carte",
-                        font=dict(size=18, family="Roboto"),
-                        x=0.5
-                    ),
-                    margin=dict(t=50, b=0, l=0, r=0)
-                )
-                
-                st.plotly_chart(fig_map, use_container_width=True)
-                
-                st.markdown("""
-                <div class="explanation-box info-news">
-                    <span class="emoji-big">💡</span>
-                    <strong>Comment lire cette carte :</strong>
-                    <br>• Les points verts = optiques avec de bonnes notes
-                    <br>• Les points rouges = optiques avec des notes plus faibles
-                    <br>• Cliquez sur un point pour voir les détails
-                </div>
-                """, unsafe_allow_html=True)
+            # Statistiques géographiques
+            st.markdown("### 📈 Stats Géo")
+            total_cities = df_filtered['Ville'].nunique()
+            st.metric("🏙️ Villes couvertes", total_cities)
+            
+            if len(top_cities) > 0:
+                concentration = (top_cities.iloc[0] / len(df_filtered)) * 100
+                st.metric("🎯 Concentration", f"{concentration:.1f}%")
     
     with tab2:
-        st.markdown('<div class="section-title">⭐ Qui a les meilleures notes ?</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header"><h3>⭐ Analyse de Performance</h3></div>', 
+                   unsafe_allow_html=True)
         
         if 'Note_Google' in df.columns:
-            # Graphique de performance simple
-            st.markdown("### 🎯 Les notes des optiques")
-            
-            # Créer des catégories simples
-            excellent = len(df_filtered[df_filtered['Note_Google'] >= 4.5])
-            tres_bon = len(df_filtered[(df_filtered['Note_Google'] >= 4.0) & (df_filtered['Note_Google'] < 4.5)])
-            moyen = len(df_filtered[(df_filtered['Note_Google'] >= 3.5) & (df_filtered['Note_Google'] < 4.0)])
-            faible = len(df_filtered[df_filtered['Note_Google'] < 3.5])
-            
-            categories = ['🌟 Excellent\n(4.5-5.0)', '⭐ Très bon\n(4.0-4.4)', '🔸 Moyen\n(3.5-3.9)', '🔻 À améliorer\n(<3.5)']
-            values = [excellent, tres_bon, moyen, faible]
-            colors = ['#4CAF50', '#8BC34A', '#FFC107', '#FF5722']
-            
-            fig_notes = go.Figure(data=[
-                go.Bar(
-                    x=categories,
-                    y=values,
-                    marker=dict(color=colors, line=dict(color='white', width=2)),
-                    text=values,
-                    textposition='outside',
-                    textfont=dict(size=16, color='black', family="Roboto")
-                )
-            ])
-            
-            fig_notes.update_layout(
-                title=dict(
-                    text="📊 Combien d'optiques dans chaque catégorie ?",
-                    font=dict(size=20, color='#333', family="Roboto"),
-                    x=0.5
+            # Dashboard des notes avec sous-graphiques
+            fig_perf = make_subplots(
+                rows=2, cols=3,
+                subplot_titles=(
+                    "Distribution des Notes", 
+                    "Notes vs Nombre d'Avis",
+                    "Top 5 Villes - Notes Moyennes",
+                    "Évolution par Score Digital",
+                    "Distribution Nb d'Avis",
+                    "Performance par Distance"
                 ),
-                xaxis=dict(
-                    tickfont=dict(size=12),
-                    title=""
-                ),
-                yaxis=dict(
-                    title="Nombre d'optiques",
-                    titlefont=dict(size=16),
-                    tickfont=dict(size=12),
-                    showgrid=True,
-                    gridcolor='lightgray'
-                ),
-                height=500,
-                paper_bgcolor='white',
-                plot_bgcolor='white',
-                margin=dict(t=80, b=50)
+                specs=[[{"type": "histogram"}, {"type": "scatter"}, {"type": "bar"}],
+                       [{"type": "scatter"}, {"type": "histogram"}, {"type": "scatter"}]]
             )
             
-            st.plotly_chart(fig_notes, use_container_width=True)
-            
-            # Explication personnalisée
-            total_good = excellent + tres_bon
-            pct_good = (total_good / len(df_filtered)) * 100
-            
-            if pct_good >= 70:
-                message_type = "good-news"
-                emoji = "🎉"
-                message = f"Excellente nouvelle ! {pct_good:.0f}% des optiques ont une bonne note (4.0 ou plus)."
-            elif pct_good >= 50:
-                message_type = "info-news"
-                emoji = "👍"
-                message = f"Plutôt bien ! {pct_good:.0f}% des optiques ont une bonne note (4.0 ou plus)."
-            else:
-                message_type = "warning-news"
-                emoji = "⚠️"
-                message = f"Attention ! Seulement {pct_good:.0f}% des optiques ont une bonne note (4.0 ou plus)."
-            
-            st.markdown(f"""
-            <div class="explanation-box {message_type}">
-                <span class="emoji-big">{emoji}</span>
-                <strong>{message}</strong>
-                <br><br>
-                💡 <strong>Ce que ça veut dire :</strong> Les notes Google montrent la satisfaction des clients. 
-                Plus la note est haute, plus les clients sont contents !
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Top des meilleures optiques
-            st.markdown("### 🏆 Le top 10 des meilleures optiques")
-            
-            top_optiques = df_filtered.nlargest(10, 'Note_Google')[['Nom', 'Ville', 'Note_Google', 'Nb_Avis_Google']]
-            
-            # Créer un graphique pour le top 10
-            fig_top = go.Figure(data=[
-                go.Bar(
-                    x=top_optiques['Note_Google'],
-                    y=[f"{row['Nom'][:25]}{'...' if len(row['Nom']) > 25 else ''}\n({row['Ville']})" 
-                       for _, row in top_optiques.iterrows()][::-1],
-                    orientation='h',
-                    marker=dict(
-                        color=top_optiques['Note_Google'],
-                        colorscale='RdYlGn',
-                        showscale=False,
-                        line=dict(color='white', width=1)
-                    ),
-                    text=[f"{note:.1f} ⭐" for note in top_optiques['Note_Google']][::-1],
-                    textposition='outside',
-                    textfont=dict(size=12, color='black')
-                )
-            ])
-            
-            fig_top.update_layout(
-                title=dict(
-                    text="🥇 Les 10 optiques avec les meilleures notes",
-                    font=dict(size=18, family="Roboto"),
-                    x=0.5
-                ),
-                xaxis=dict(
-                    title="Note Google",
-                    range=[3.5, 5.1],
-                    tickfont=dict(size=12)
-                ),
-                yaxis=dict(tickfont=dict(size=10)),
-                height=600,
-                paper_bgcolor='white',
-                plot_bgcolor='white',
-                margin=dict(l=200, r=50, t=60, b=50)
+            # Distribution des notes
+            fig_perf.add_trace(
+                go.Histogram(x=df_filtered["Note_Google"].dropna(), 
+                           nbinsx=20, name="Notes", marker_color='lightblue'),
+                row=1, col=1
             )
             
-            st.plotly_chart(fig_top, use_container_width=True)
+            # Notes vs Nb d'avis
+            fig_perf.add_trace(
+                go.Scatter(x=df_filtered["Note_Google"], y=df_filtered["Nb_Avis_Google"],
+                          mode="markers", name="Performance", 
+                          marker=dict(color='orange', size=6)),
+                row=1, col=2
+            )
             
-            # Analyse des avis
-            if 'Nb_Avis_Google' in df.columns:
-                st.markdown("### 💬 Qui a le plus d'avis clients ?")
-                
-                avg_avis = df_filtered['Nb_Avis_Google'].mean()
-                median_avis = df_filtered['Nb_Avis_Google'].median()
-                
-                # Distribution des avis en catégories simples
-                peu_avis = len(df_filtered[df_filtered['Nb_Avis_Google'] < 10])
-                moyen_avis = len(df_filtered[(df_filtered['Nb_Avis_Google'] >= 10) & (df_filtered['Nb_Avis_Google'] < 50)])
-                beaucoup_avis = len(df_filtered[df_filtered['Nb_Avis_Google'] >= 50])
-                
-                fig_avis = go.Figure(data=[go.Pie(
-                    labels=['👥 Beaucoup d\'avis\n(50+)', '💬 Quelques avis\n(10-49)', '🔇 Peu d\'avis\n(<10)'],
-                    values=[beaucoup_avis, moyen_avis, peu_avis],
-                    hole=.3,
-                    marker=dict(colors=['#4CAF50', '#FFC107', '#FF5722']),
-                    textinfo='label+percent+value',
-                    textfont=dict(size=12)
-                )])
-                
-                fig_avis.update_layout(
-                    title=dict(
-                        text="📈 Répartition du nombre d'avis par optique",
-                        font=dict(size=18, family="Roboto"),
-                        x=0.5
-                    ),
-                    height=500,
-                    paper_bgcolor='white'
+            # Top 5 villes - notes moyennes
+            top5_cities = df_filtered["Ville"].value_counts().head(5).index
+            city_notes = df_filtered[df_filtered["Ville"].isin(top5_cities)].groupby("Ville")["Note_Google"].mean()
+            fig_perf.add_trace(
+                go.Bar(x=city_notes.index, y=city_notes.values, 
+                      name="Moyenne", marker_color='green'),
+                row=1, col=3
+            )
+            
+            # Score digital vs notes
+            if "Score_Presence_Digitale" in df.columns:
+                fig_perf.add_trace(
+                    go.Scatter(x=df_filtered["Score_Presence_Digitale"], 
+                             y=df_filtered["Note_Google"],
+                             mode="markers", name="Digital vs Note",
+                             marker=dict(color='purple', size=6)),
+                    row=2, col=1
                 )
-                
-                st.plotly_chart(fig_avis, use_container_width=True)
-                
-                st.markdown(f"""
-                <div class="explanation-box info-news">
-                    <span class="emoji-big">📊</span>
-                    <strong>En moyenne, chaque optique a {avg_avis:.0f} avis clients.</strong>
-                    <br><br>
-                    💡 <strong>Pourquoi c'est important :</strong> Plus une optique a d'avis, plus on peut faire confiance à sa note. 
-                    Une note de 5/5 avec 2 avis est moins fiable qu'une note de 4.5/5 avec 100 avis !
-                </div>
-                """, unsafe_allow_html=True)
+            
+            # Distribution Nb d'avis
+            fig_perf.add_trace(
+                go.Histogram(x=df_filtered["Nb_Avis_Google"].dropna(), 
+                           nbinsx=30, name="Nb Avis", marker_color='red'),
+                row=2, col=2
+            )
+            
+            # Distance vs notes
+            if "Distance-TARMIZ(KM)" in df.columns:
+                fig_perf.add_trace(
+                    go.Scatter(x=df_filtered["Distance-TARMIZ(KM)"], 
+                             y=df_filtered["Note_Google"],
+                             mode="markers", name="Distance vs Note",
+                             marker=dict(color='brown', size=6)),
+                    row=2, col=3
+                )
+            
+            fig_perf.update_layout(
+                height=800, 
+                title_text="📊 Dashboard Performance Complet",
+                title_x=0.5,
+                showlegend=False
+            )
+            st.plotly_chart(fig_perf, use_container_width=True)
+            
+            # Insights de performance
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                high_rated = len(df_filtered[df_filtered['Note_Google'] >= 4.0])
+                st.metric("🌟 Notes ≥ 4.0", f"{high_rated} ({high_rated/len(df_filtered)*100:.1f}%)")
+            
+            with col2:
+                high_reviews = len(df_filtered[df_filtered['Nb_Avis_Google'] >= 50])
+                st.metric("💬 Avis ≥ 50", f"{high_reviews} ({high_reviews/len(df_filtered)*100:.1f}%)")
+            
+            with col3:
+                top_performers = len(df_filtered[
+                    (df_filtered['Note_Google'] >= 4.0) & 
+                    (df_filtered['Nb_Avis_Google'] >= 20)
+                ])
+                st.metric("🏆 Top Performers", f"{top_performers} ({top_performers/len(df_filtered)*100:.1f}%)")
     
     with tab3:
-        st.markdown('<div class="section-title">💻 Qui est présent sur internet ?</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header"><h3>📱 Présence Digitale</h3></div>', 
+                   unsafe_allow_html=True)
         
-        # Analyser la présence digitale de manière simple
-        digital_analysis = {}
+        # Analyse présence digitale
+        digital_cols = ["Site web","Réseaux sociaux","Email"]
+        digital_data = []
         
-        if 'Site web' in df.columns:
-            avec_site = df_filtered['Site web'].notna().sum()
-            sans_site = len(df_filtered) - avec_site
-            digital_analysis['Site web'] = {'Oui': avec_site, 'Non': sans_site}
+        for col in digital_cols:
+            if col in df.columns:
+                count = df_filtered[col].notna().sum()
+                percentage = (count / len(df_filtered)) * 100
+                digital_data.append({
+                    'Canal': col,
+                    'Nombre': count,
+                    'Pourcentage': percentage
+                })
         
-        if 'Email' in df.columns:
-            avec_email = df_filtered['Email'].notna().sum()
-            sans_email = len(df_filtered) - avec_email
-            digital_analysis['Email'] = {'Oui': avec_email, 'Non': sans_email}
-        
-        if 'Réseaux sociaux' in df.columns:
-            avec_social = df_filtered['Réseaux sociaux'].notna().sum()
-            sans_social = len(df_filtered) - avec_social
-            digital_analysis['Réseaux sociaux'] = {'Oui': avec_social, 'Non': sans_social}
-        
-        if digital_analysis:
-            st.markdown("### 🌐 Présence sur internet")
+        if digital_data:
+            col1, col2 = st.columns(2)
             
-            # Créer un graphique empilé simple
-            canaux = list(digital_analysis.keys())
-            oui_values = [digital_analysis[canal]['Oui'] for canal in canaux]
-            non_values = [digital_analysis[canal]['Non'] for canal in canaux]
-            
-            fig_digital = go.Figure()
-            
-            fig_digital.add_trace(go.Bar(
-                name='✅ Présent',
-                x=canaux,
-                y=oui_values,
-                marker_color='#4CAF50',
-                text=[f"{val} optiques" for val in oui_values],
-                textposition='inside'
-            ))
-            
-            fig_digital.add_trace(go.Bar(
-                name='❌ Absent',
-                x=canaux,
-                y=non_values,
-                marker_color='#FF5722',
-                text=[f"{val} optiques" for val in non_values],
-                textposition='inside'
-            ))
-            
-            fig_digital.update_layout(
-                title=dict(
-                    text="📊 Combien d'optiques sont présentes sur chaque canal ?",
-                    font=dict(size=18, family="Roboto"),
-                    x=0.5
-                ),
-                barmode='stack',
-                xaxis=dict(
-                    title="Type de présence internet",
-                    titlefont=dict(size=14),
-                    tickfont=dict(size=12)
-                ),
-                yaxis=dict(
-                    title="Nombre d'optiques",
-                    titlefont=dict(size=14),
-                    tickfont=dict(size=12)
-                ),
-                height=500,
-                paper_bgcolor='white',
-                plot_bgcolor='white',
-                legend=dict(
-                    orientation="h",
-                    yanchor="bottom",
-                    y=1.02,
-                    xanchor="right",
-                    x=1
+            with col1:
+                digital_df = pd.DataFrame(digital_data)
+                fig_digital = px.bar(
+                    digital_df,
+                    x='Canal',
+                    y='Pourcentage',
+                    color='Pourcentage',
+                    color_continuous_scale=color_theme,
+                    title="📊 Taux de Présence par Canal",
+                    text='Pourcentage'
                 )
-            )
+                fig_digital.update_traces(
+                    texttemplate='%{text:.1f}%', 
+                    textposition='outside'
+                )
+                fig_digital.update_layout(height=400)
+                st.plotly_chart(fig_digital, use_container_width=True)
             
-            st.plotly_chart(fig_digital, use_container_width=True)
-            
-            # Analyse simple
-            if 'Site web' in digital_analysis:
-                pct_site = (digital_analysis['Site web']['Oui'] / len(df_filtered)) * 100
-                
-                if pct_site >= 80:
-                    message_type = "good-news"
-                    emoji = "🚀"
-                    message = f"Excellent ! {pct_site:.0f}% des optiques ont un site web."
-                elif pct_site >= 50:
-                    message_type = "info-news"
-                    emoji = "👍"
-                    message = f"Pas mal ! {pct_site:.0f}% des optiques ont un site web."
-                else:
-                    message_type = "warning-news"
-                    emoji = "⚠️"
-                    message = f"Attention ! Seulement {pct_site:.0f}% des optiques ont un site web."
-                
-                st.markdown(f"""
-                <div class="explanation-box {message_type}">
-                    <span class="emoji-big">{emoji}</span>
-                    <strong>{message}</strong>
-                    <br><br>
-                    💡 <strong>Pourquoi c'est important :</strong> Aujourd'hui, les clients cherchent d'abord sur internet. 
-                    Une optique sans site web perd beaucoup de clients potentiels !
-                </div>
-                """, unsafe_allow_html=True)
+            with col2:
+                fig_pie = px.pie(
+                    digital_df,
+                    values='Nombre',
+                    names='Canal',
+                    title="🥧 Répartition des Canaux",
+                    color_discrete_sequence=px.colors.qualitative.Set3
+                )
+                fig_pie.update_layout(height=400)
+                st.plotly_chart(fig_pie, use_container_width=True)
         
-        # Score digital si disponible
-        if 'Score_Presence_Digitale' in df.columns:
-            st.markdown("### 📱 Niveau de maturité digitale")
+        # Score présence digitale
+        if "Score_Presence_Digitale" in df.columns:
+            col1, col2 = st.columns(2)
             
-            # Créer des catégories simples pour le score digital
-            debutant = len(df_filtered[df_filtered['Score_Presence_Digitale'] <= 30])
-            intermediaire = len(df_filtered[(df_filtered['Score_Presence_Digitale'] > 30) & (df_filtered['Score_Presence_Digitale'] <= 60)])
-            avance = len(df_filtered[(df_filtered['Score_Presence_Digitale'] > 60) & (df_filtered['Score_Presence_Digitale'] <= 80)])
-            expert = len(df_filtered[df_filtered['Score_Presence_Digitale'] > 80])
+            with col1:
+                fig_score_dist = px.histogram(
+                    df_filtered, 
+                    x="Score_Presence_Digitale", 
+                    nbins=20,
+                    color_discrete_sequence=['lightcoral'],
+                    title="📈 Distribution Score Digital"
+                )
+                st.plotly_chart(fig_score_dist, use_container_width=True)
             
-            labels = ['🟢 Expert\n(80-100)', '🔵 Avancé\n(60-80)', '🟡 Intermédiaire\n(30-60)', '🔴 Débutant\n(0-30)']
-            values = [expert, avance, intermediaire, debutant]
-            colors = ['#4CAF50', '#2196F3', '#FFC107', '#FF5722']
-            
-            fig_maturity = go.Figure(data=[go.Pie(
-                labels=labels,
-                values=values,
-                hole=.4,
-                marker=dict(colors=colors),
-                textinfo='label+percent+value',
-                textfont=dict(size=12)
-            )])
-            
-            fig_maturity.update_layout(
-                title=dict(
-                    text="🎯 À quel niveau sont les optiques sur le digital ?",
-                    font=dict(size=18, family="Roboto"),
-                    x=0.5
-                ),
-                height=500,
-                paper_bgcolor='white'
-            )
-            
-            st.plotly_chart(fig_maturity, use_container_width=True)
-            
-            avg_score = df_filtered['Score_Presence_Digitale'].mean()
-            
-            if avg_score >= 70:
-                message_type = "good-news"
-                emoji = "🚀"
-                level = "très bon"
-            elif avg_score >= 50:
-                message_type = "info-news"
-                emoji = "📈"
-                level = "correct"
-            else:
-                message_type = "warning-news"
-                emoji = "📉"
-                level = "faible"
-            
-            st.markdown(f"""
-            <div class="explanation-box {message_type}">
-                <span class="emoji-big">{emoji}</span>
-                <strong>Le niveau digital moyen est {level} avec un score de {avg_score:.0f}/100.</strong>
-                <br><br>
-                💡 <strong>Ce que ça veut dire :</strong> Ce score combine site web, réseaux sociaux, présence Google, etc. 
-                Plus le score est élevé, plus l'optique est visible sur internet !
-            </div>
-            """, unsafe_allow_html=True)
+            with col2:
+                if 'Note_Google' in df.columns:
+                    fig_correlation = px.scatter(
+                        df_filtered, 
+                        x="Score_Presence_Digitale", 
+                        y="Note_Google",
+                        color="Ville",
+                        size="Nb_Avis_Google" if "Nb_Avis_Google" in df.columns else None,
+                        hover_data=["Nom"],
+                        title="🔗 Score Digital vs Performance"
+                    )
+                    st.plotly_chart(fig_correlation, use_container_width=True)
     
     with tab4:
-        st.markdown('<div class="section-title">📋 Toutes les données</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header"><h3>📊 Analytics Avancés</h3></div>', 
+                   unsafe_allow_html=True)
         
-        st.markdown("### 🔍 Explorer les données")
+        # Matrice de corrélation
+        numeric_columns = df_filtered.select_dtypes(include=[np.number]).columns
+        if len(numeric_columns) > 1:
+            st.markdown("### 🔗 Matrice de Corrélation")
+            correlation_matrix = df_filtered[numeric_columns].corr()
+            
+            fig_corr = px.imshow(
+                correlation_matrix,
+                color_continuous_scale=color_theme,
+                title="Corrélations entre variables numériques"
+            )
+            fig_corr.update_layout(height=500)
+            st.plotly_chart(fig_corr, use_container_width=True)
         
-        # Options simples
+        # Analyse par segments
         col1, col2 = st.columns(2)
         
         with col1:
-            colonnes_importantes = ['Nom', 'Ville', 'Note_Google', 'Nb_Avis_Google', 'Site web']
-            colonnes_disponibles = [col for col in colonnes_importantes if col in df_filtered.columns]
-            
-            afficher_colonnes = st.multiselect(
-                "Quelles informations voulez-vous voir ?",
-                df_filtered.columns.tolist(),
-                default=colonnes_disponibles
-            )
+            if "Taille_Entreprise" in df.columns:
+                st.markdown("### 🏢 Analyse par Taille")
+                size_analysis = df_filtered.groupby('Taille_Entreprise').agg({
+                    'Note_Google': 'mean',
+                    'Nb_Avis_Google': 'mean',
+                    'Score_Presence_Digitale': 'mean'
+                }).round(2)
+                
+                st.dataframe(size_analysis, use_container_width=True)
+                
+                fig_size = px.pie(
+                    df_filtered, 
+                    names="Taille_Entreprise",
+                    title="Répartition par Taille",
+                    color_discrete_sequence=px.colors.qualitative.Pastel
+                )
+                st.plotly_chart(fig_size, use_container_width=True)
         
         with col2:
-            tri_options = ['Note_Google', 'Nb_Avis_Google', 'Nom', 'Ville']
-            tri_disponible = [col for col in tri_options if col in df_filtered.columns]
-            
-            if tri_disponible:
-                trier_par = st.selectbox("Comment trier ?", 
-                                       ["Meilleures notes d'abord", "Plus d'avis d'abord", "Par nom", "Par ville"])
+            if "Anciennete_Estimee" in df.columns:
+                st.markdown("### 📅 Analyse Temporelle")
+                fig_age = px.histogram(
+                    df_filtered,
+                    x="Anciennete_Estimee",
+                    nbins=15,
+                    color_discrete_sequence=['lightseagreen'],
+                    title="Distribution de l'Ancienneté"
+                )
+                st.plotly_chart(fig_age, use_container_width=True)
+                
+                # Ancienneté vs Performance
+                if 'Note_Google' in df.columns:
+                    fig_age_perf = px.scatter(
+                        df_filtered,
+                        x="Anciennete_Estimee",
+                        y="Note_Google",
+                        color="Score_Presence_Digitale" if "Score_Presence_Digitale" in df.columns else None,
+                        title="Ancienneté vs Performance"
+                    )
+                    st.plotly_chart(fig_age_perf, use_container_width=True)
         
-        # Affichage du tableau simplifié
-        if afficher_colonnes:
-            df_show = df_filtered[afficher_colonnes].copy()
-            
-            # Appliquer le tri
-            if tri_disponible and 'trier_par' in locals():
-                if trier_par == "Meilleures notes d'abord" and 'Note_Google' in df_show.columns:
-                    df_show = df_show.sort_values('Note_Google', ascending=False)
-                elif trier_par == "Plus d'avis d'abord" and 'Nb_Avis_Google' in df_show.columns:
-                    df_show = df_show.sort_values('Nb_Avis_Google', ascending=False)
-                elif trier_par == "Par nom" and 'Nom' in df_show.columns:
-                    df_show = df_show.sort_values('Nom')
-                elif trier_par == "Par ville" and 'Ville' in df_show.columns:
-                    df_show = df_show.sort_values('Ville')
-            
-            # Formater les nombres pour qu'ils soient plus lisibles
-            if 'Note_Google' in df_show.columns:
-                df_show['Note_Google'] = df_show['Note_Google'].round(1).astype(str) + "/5"
-            
-            if 'Score_Presence_Digitale' in df_show.columns:
-                df_show['Score_Presence_Digitale'] = df_show['Score_Presence_Digitale'].round(0).astype(str) + "/100"
-            
-            if 'Distance-TARMIZ(KM)' in df_show.columns:
-                df_show['Distance-TARMIZ(KM)'] = df_show['Distance-TARMIZ(KM)'].round(1).astype(str) + " km"
-            
-            # Renommer les colonnes pour qu'elles soient plus claires
-            rename_dict = {
-                'Nom': '🏪 Nom de l\'optique',
-                'Ville': '🏙️ Ville',
-                'Note_Google': '⭐ Note Google',
-                'Nb_Avis_Google': '💬 Nombre d\'avis',
-                'Site web': '🌐 Site internet',
-                'Email': '📧 Email',
-                'Réseaux sociaux': '📱 Réseaux sociaux',
-                'Score_Presence_Digitale': '📊 Score digital',
-                'Distance-TARMIZ(KM)': '📍 Distance TARMIZ'
-            }
-            
-            for old_name, new_name in rename_dict.items():
-                if old_name in df_show.columns:
-                    df_show = df_show.rename(columns={old_name: new_name})
-            
-            st.markdown("### 📊 Voici vos optiques :")
-            st.dataframe(df_show, use_container_width=True, height=400)
-            
-            # Résumé simple du tableau
-            st.markdown(f"""
-            <div class="explanation-box info-news">
-                <span class="emoji-big">📋</span>
-                <strong>Vous regardez {len(df_show):,} optiques</strong> sur un total de {len(df):,} dans la base de données.
-                <br><br>
-                💾 Vous pouvez télécharger ces données en cliquant sur le bouton ci-dessous.
-            </div>
-            """, unsafe_allow_html=True)
+        # Benchmarking
+        st.markdown("### 🎯 Benchmarking")
         
-        # Téléchargement simple
-        st.markdown("### 💾 Télécharger les données")
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            if 'Note_Google' in df.columns:
+                top_25_pct = df_filtered['Note_Google'].quantile(0.75)
+                st.metric("🥇 Top 25% Notes", f"{top_25_pct:.2f}+")
+        
+        with col2:
+            if 'Nb_Avis_Google' in df.columns:
+                median_reviews = df_filtered['Nb_Avis_Google'].median()
+                st.metric("📊 Médiane Avis", f"{median_reviews:.0f}")
+        
+        with col3:
+            if 'Score_Presence_Digitale' in df.columns:
+                top_digital = df_filtered['Score_Presence_Digitale'].quantile(0.90)
+                st.metric("🚀 Top 10% Digital", f"{top_digital:.0f}+")
+        
+        with col4:
+            if 'Distance-TARMIZ(KM)' in df.columns:
+                close_to_tarmiz = len(df_filtered[df_filtered['Distance-TARMIZ(KM)'] <= 10])
+                st.metric("📍 Proche TARMIZ (<10km)", close_to_tarmiz)
+    
+    with tab5:
+        st.markdown('<div class="section-header"><h3>📋 Données Détaillées</h3></div>', 
+                   unsafe_allow_html=True)
+        
+        # Options d'affichage
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            show_all = st.checkbox("Afficher toutes les colonnes", False)
+        
+        with col2:
+            if not show_all:
+                display_cols = st.multiselect(
+                    "Colonnes à afficher:",
+                    df_filtered.columns.tolist(),
+                    default=['Nom', 'Ville', 'Note_Google', 'Nb_Avis_Google'][:4]
+                )
+            else:
+                display_cols = df_filtered.columns.tolist()
+        
+        with col3:
+            sort_by = st.selectbox(
+                "Trier par:",
+                ['Note_Google', 'Nb_Avis_Google', 'Score_Presence_Digitale', 'Distance-TARMIZ(KM)']
+            )
+        
+        # Affichage du tableau
+        if display_cols:
+            df_display = df_filtered[display_cols].copy()
+            
+            if sort_by in df_display.columns:
+                df_display = df_display.sort_values(sort_by, ascending=False)
+            
+            st.dataframe(
+                df_display,
+                use_container_width=True,
+                height=400
+            )
+            
+            # Statistiques du tableau
+            st.markdown("### 📈 Statistiques")
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric("📊 Lignes affichées", len(df_display))
+            
+            with col2:
+                st.metric("📋 Colonnes", len(display_cols))
+            
+            with col3:
+                if 'Note_Google' in df_display.columns:
+                    avg_note_filtered = df_display['Note_Google'].mean()
+                    st.metric("⭐ Moyenne filtrée", f"{avg_note_filtered:.2f}")
+            
+            with col4:
+                if 'Score_Presence_Digitale' in df_display.columns:
+                    avg_digital_filtered = df_display['Score_Presence_Digitale'].mean()
+                    st.metric("📱 Score moy. filtré", f"{avg_digital_filtered:.0f}")
+        
+        # Export des données
+        st.markdown("### 📥 Export")
         
         col1, col2 = st.columns(2)
         
         with col1:
-            # Préparer les données pour l'export
-            df_export = df_filtered.copy()
-            
-            # Nettoyer les données pour l'export
-            if 'Note_Google' in df_export.columns:
-                df_export['Note_Google'] = df_export['Note_Google'].round(2)
-            
-            csv_data = df_export.to_csv(index=False, encoding='utf-8-sig')  # utf-8-sig pour Excel
-            
+            csv = df_filtered.to_csv(index=False)
             st.download_button(
-                label="📊 Télécharger toutes les données filtrées",
-                data=csv_data,
-                file_name=f"optiques_data_{datetime.now().strftime('%Y%m%d')}.csv",
-                mime="text/csv",
-                help="Fichier CSV compatible avec Excel"
+                label="📊 Télécharger CSV (Filtré)",
+                data=csv,
+                file_name=f"optiques_filtered_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv"
             )
         
         with col2:
-            if afficher_colonnes:
-                csv_selection = df_show.to_csv(index=False, encoding='utf-8-sig')
+            if display_cols:
+                csv_display = df_display.to_csv(index=False)
                 st.download_button(
-                    label="📋 Télécharger seulement les colonnes choisies",
-                    data=csv_selection,
+                    label="📋 Télécharger Sélection",
+                    data=csv_display,
                     file_name=f"optiques_selection_{datetime.now().strftime('%Y%m%d')}.csv",
-                    mime="text/csv",
-                    help="Seulement les colonnes que vous avez sélectionnées"
+                    mime="text/csv"
                 )
     
     # ----------------------------
-    # RÉSUMÉ FINAL TRÈS SIMPLE
+    # FOOTER AVEC RÉSUMÉ
     # ----------------------------
     st.markdown("---")
-    st.markdown('<div class="section-title">🎯 Résumé : Ce qu\'il faut retenir</div>', unsafe_allow_html=True)
+    st.markdown("## 📈 Résumé Exécutif")
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
         st.markdown("### 🏆 Performance")
         if 'Note_Google' in df.columns:
-            avg_note = df_filtered['Note_Google'].mean()
-            excellent_count = len(df_filtered[df_filtered['Note_Google'] >= 4.5])
-            excellent_pct = (excellent_count / len(df_filtered)) * 100
-            
-            if avg_note >= 4.2:
-                performance_msg = "Les optiques ont d'excellentes notes !"
-                performance_emoji = "🎉"
-                performance_color = "good-news"
-            elif avg_note >= 3.8:
-                performance_msg = "Les notes sont correctes dans l'ensemble."
-                performance_emoji = "👍"
-                performance_color = "info-news"
-            else:
-                performance_msg = "Les notes pourraient être améliorées."
-                performance_emoji = "⚠️"
-                performance_color = "warning-news"
-            
-            st.markdown(f"""
-            <div class="explanation-box {performance_color}">
-                <span class="emoji-big">{performance_emoji}</span>
-                <strong>{performance_msg}</strong>
-                <br><br>
-                📊 Note moyenne : <strong>{avg_note:.1f}/5</strong><br>
-                🌟 {excellent_count} optiques excellentes ({excellent_pct:.0f}%)
-            </div>
-            """, unsafe_allow_html=True)
+            excellent = len(df_filtered[df_filtered['Note_Google'] >= 4.5])
+            st.write(f"• **Excellentes** (≥4.5): {excellent} ({excellent/len(df_filtered)*100:.1f}%)")
+            good = len(df_filtered[df_filtered['Note_Google'] >= 4.0])
+            st.write(f"• **Bonnes** (≥4.0): {good} ({good/len(df_filtered)*100:.1f}%)")
     
     with col2:
-        st.markdown("### 💻 Présence Internet")
-        web_analysis = ""
-        web_emoji = "💻"
-        web_color = "info-news"
-        
-        if 'Site web' in df.columns:
-            web_count = df_filtered['Site web'].notna().sum()
-            web_pct = (web_count / len(df_filtered)) * 100
-            
-            if web_pct >= 70:
-                web_analysis = f"Très bien ! {web_pct:.0f}% ont un site web."
-                web_emoji = "🚀"
-                web_color = "good-news"
-            elif web_pct >= 40:
-                web_analysis = f"Moyen : {web_pct:.0f}% ont un site web."
-                web_emoji = "📈"
-                web_color = "info-news"
-            else:
-                web_analysis = f"Faible : seulement {web_pct:.0f}% ont un site web."
-                web_emoji = "⚠️"
-                web_color = "warning-news"
-        
-        if 'Score_Presence_Digitale' in df.columns:
-            avg_digital = df_filtered['Score_Presence_Digitale'].mean()
-            web_analysis += f"<br>📱 Score digital moyen : <strong>{avg_digital:.0f}/100</strong>"
-        
-        st.markdown(f"""
-        <div class="explanation-box {web_color}">
-            <span class="emoji-big">{web_emoji}</span>
-            <strong>Présence sur internet :</strong>
-            <br><br>
-            {web_analysis}
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("### 📱 Digital")
+        if all(col in df.columns for col in ['Site web', 'Email', 'Réseaux sociaux']):
+            complete_digital = len(df_filtered[
+                df_filtered['Site web'].notna() & 
+                df_filtered['Email'].notna() & 
+                df_filtered['Réseaux sociaux'].notna()
+            ])
+            st.write(f"• **Présence complète**: {complete_digital} ({complete_digital/len(df_filtered)*100:.1f}%)")
     
     with col3:
-        st.markdown("### 🌍 Répartition")
+        st.markdown("### 🌍 Géographie")
         total_cities = df_filtered['Ville'].nunique()
         top_city = df_filtered['Ville'].value_counts().index[0]
-        top_city_count = df_filtered['Ville'].value_counts().iloc[0]
-        concentration = (top_city_count / len(df_filtered)) * 100
-        
-        if concentration > 50:
-            geo_msg = f"Très concentré dans {top_city}"
-            geo_emoji = "🎯"
-            geo_color = "warning-news"
-        elif concentration > 30:
-            geo_msg = f"Assez concentré dans {top_city}"
-            geo_emoji = "📍"
-            geo_color = "info-news"
-        else:
-            geo_msg = "Bien réparti géographiquement"
-            geo_emoji = "🌍"
-            geo_color = "good-news"
-        
-        st.markdown(f"""
-        <div class="explanation-box {geo_color}">
-            <span class="emoji-big">{geo_emoji}</span>
-            <strong>{geo_msg}</strong>
-            <br><br>
-            🏙️ <strong>{total_cities}</strong> villes différentes<br>
-            🏆 Leader : <strong>{top_city}</strong> ({top_city_count} optiques)
-        </div>
-        """, unsafe_allow_html=True)
+        top_count = df_filtered['Ville'].value_counts().iloc[0]
+        st.write(f"• **Villes couvertes**: {total_cities}")
+        st.write(f"• **Leader**: {top_city} ({top_count})")
     
-    # Conseils pratiques
-    st.markdown("### 💡 Conseils pratiques")
-    
-    advice_col1, advice_col2 = st.columns(2)
-    
-    with advice_col1:
-        st.markdown("""
-        <div class="explanation-box info-news">
-            <span class="emoji-big">🎯</span>
-            <strong>Pour choisir une bonne optique :</strong>
-            <br><br>
-            ✅ Regardez la note Google (4.0 minimum)<br>
-            ✅ Vérifiez le nombre d'avis (plus il y en a, mieux c'est)<br>
-            ✅ Choisissez près de chez vous<br>
-            ✅ Regardez si elle a un site web moderne
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with advice_col2:
-        st.markdown("""
-        <div class="explanation-box good-news">
-            <span class="emoji-big">🚀</span>
-            <strong>Si vous êtes opticien :</strong>
-            <br><br>
-            📈 Demandez plus d'avis à vos clients contents<br>
-            🌐 Créez un site web professionnel<br>
-            📱 Soyez présent sur les réseaux sociaux<br>
-            ⭐ Répondez aux avis clients (bons et mauvais)
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Footer simple
-    st.markdown("---")
-    
-    # Informations sur les filtres actifs
-    filters_text = []
-    if selected_city != 'Toutes les villes':
-        filters_text.append(f"🏙️ Ville : {selected_city}")
-    if 'note_choice' in locals() and note_choice != "Toutes les notes":
-        filters_text.append(f"⭐ {note_choice.lower()}")
-    
-    if filters_text:
-        filters_display = " • ".join(filters_text)
-        st.markdown(f"**🔍 Filtres actifs :** {filters_display}")
-    
-    st.markdown(f"""
-    <div style="text-align: center; color: #666; margin-top: 2rem; padding: 1rem;">
-        <strong>📊 Dashboard Optiques Simple</strong><br>
-        Dernière mise à jour : {datetime.now().strftime('%d/%m/%Y à %H:%M')}<br>
-        📈 Données analysées : {len(df_filtered):,} optiques sur {len(df):,} total
-    </div>
-    """, unsafe_allow_html=True)
+    # Timestamp
+    st.markdown(f"*Dernière mise à jour: {datetime.now().strftime('%d/%m/%Y à %H:%M')}*")
 
 else:
-    # Page d'erreur très simple
-    st.markdown("""
-    <div style="background: #ffebee; border: 3px solid #f44336; border-radius: 15px; padding: 3rem; text-align: center; margin: 2rem 0;">
-        <h1 style="color: #d32f2f; font-size: 3rem;">❌ Oups !</h1>
-        <p style="font-size: 1.5rem; color: #666;">Je ne trouve pas le fichier avec les données des optiques.</p>
-        <p style="font-size: 1.2rem; color: #666;">Le fichier <strong>OPTIQUESS.xlsx</strong> doit être dans le même dossier que ce programme.</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("""
-    ### 🔧 Comment résoudre le problème :
-    
-    1. **Vérifiez le nom du fichier** : il doit s'appeler exactement `OPTIQUESS.xlsx`
-    2. **Vérifiez l'emplacement** : le fichier doit être dans le même dossier que ce programme
-    3. **Vérifiez que le fichier fonctionne** : ouvrez-le avec Excel pour voir s'il n'est pas corrompu
-    4. **Redémarrez** : fermez et relancez le programme
-    
-    Si le problème persiste, contactez l'administrateur du système.
-    """)
+    st.error("❌ Impossible de charger le fichier OPTIQUESS.xlsx")
+    st.info("Vérifiez que le fichier existe dans le même répertoire que ce script.")
