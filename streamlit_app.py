@@ -80,7 +80,7 @@ st.markdown("""
 st.markdown("""
 <div class="main-header">
     <h1>👓 Dashboard Secteur Optique - Analyse Complète</h1>
-    <p>Tableau de bord interactif pour l'analyse du marché optique</p>
+    
 </div>
 """, unsafe_allow_html=True)
 
